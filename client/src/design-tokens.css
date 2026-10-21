@@ -1,0 +1,19 @@
+:root {
+  --site-paper: #f4f0e8;
+  --site-ink: #292d27;
+  --site-muted: #62695e;
+  --site-accent: #ac482d;
+  --site-accent-hover: #963b24;
+  --site-dark: #252d27;
+  --site-line: #d5d2c6;
+  --font-2xs: 11px;
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-label: 14px;
+  --font-control: 15px;
+  --font-body: 16px;
+  --font-subtitle: 17px;
+  --font-lead: 18px;
+  font-size: var(--font-body);
+}
+body { font-size: var(--font-body); line-height: 1.55; }

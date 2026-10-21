@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+atlas-credentials.env
+server/data/database.json
+server/data/*.tmp
+tmp/
+server/uploads/
+
+# Internal docs and scripts (giu cuc bo, khong dua len github)
+*.docx
+HUONG_DAN_*.md
+KICH_BAN_*.md
+TAI_LIEU_*.md
+LANDING_ASSETS.md
+prompt-*.md
+scripts/git-simulate.ps1

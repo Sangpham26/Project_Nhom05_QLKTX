@@ -1,0 +1,23 @@
+{
+  "name": "qlktx-server",
+  "private": true,
+  "scripts": {
+    "dev": "node --watch src/app.js",
+    "start": "node src/app.js",
+    "seed": "node scripts/seed.js",
+    "reset": "node scripts/seed.js --reset",
+    "migrate:check": "node scripts/migrate-json-to-mongo.js --check-source",
+    "migrate:dry-run": "node scripts/migrate-json-to-mongo.js",
+    "migrate:apply": "node scripts/migrate-json-to-mongo.js --apply",
+    "migrate:verify": "node scripts/verify-mongo.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^7.7.0",
+    "qlktx-demo": "file:.."
+  }
+}

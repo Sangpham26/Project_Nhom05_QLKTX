@@ -83,7 +83,7 @@ export default function LandingNav({ session, onLogout, home = true }) {
           <span className="lp-brand-symbol">
             <img src={logoDark} alt="Logo Nhóm 05" className="lp-brand-logo" />
           </span>
-          <span><strong>Nhóm 05</strong><small>KÝ TÚC XÁ SINH VIÊN</small></span>
+          <span><strong>Nhóm 05</strong><small>QUẢN LÝ KÝ TÚC XÁ</small></span>
         </a>
         <div className="lp-nav-desktop">
           {navItems.map((item) => <a key={item.href} href={home ? item.href : `/${item.href}`}>{item.label}</a>)}

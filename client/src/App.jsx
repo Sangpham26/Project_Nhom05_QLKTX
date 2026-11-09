@@ -1271,8 +1271,8 @@ function AuthPage({ register = false }) {
           </span>
           <div>
             <strong>Nhóm 05</strong>
-            <small>KÝ TÚC XÁ SINH VIÊN</small>
-          </div>
+            <small>QUẢN LÝ KÝ TÚC XÁ</small>
+          </div>    
         </Link>
         <div className="auth-content">
           <span className="eyebrow">
@@ -1359,22 +1359,13 @@ function AuthPage({ register = false }) {
               {register ? "Đăng nhập" : "Đăng ký ngay"}
             </Link>
           </div>
-          {!register && (
-            <div className="demo-note">
-              <strong>Tài khoản demo</strong>
-              <span>admin@ktx.demo · staff@ktx.demo · an@ktx.demo</span>
-              <span>
-                Mật khẩu chung: <b>Demo@123</b>
-              </span>
-            </div>
-          )}
         </div>
         <div className="auth-footer">
-          © {new Date().getFullYear()} Nhóm 05 · Quản lý ký túc xá sinh viên
+          © {new Date().getFullYear()} Nhóm 05 · Quản lý ký túc xá
         </div>
       </div>
       <div className="auth-visual">
-        <div className="visual-top">NHÓM 05 · KÝ TÚC XÁ SINH VIÊN</div>
+        <div className="visual-top">NHÓM 05 · QUẢN LÝ KÝ TÚC XÁ</div>
         <div className="visual-copy">
           <span>PHÒNG Ở VÀ LƯU TRÚ</span>
           <h2>

@@ -1,8 +1,9 @@
 // Homepage navigation; its width and colors follow the shared landing theme.
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Building2, LayoutDashboard, LogOut, Menu, Users, X } from 'lucide-react';
+import { ArrowRight, LayoutDashboard, LogOut, Menu, Users, X } from 'lucide-react';
 import { labels } from '../api';
+import logoDark from '../../img/logo/Mainlogo-Dark.png';
 
 const navItems = [
   { label: 'Trang chủ', href: '#dau-trang' },
@@ -79,7 +80,9 @@ export default function LandingNav({ session, onLogout, home = true }) {
     <header className={`lp-header${scrolled ? ' is-scrolled' : ''}`}>
       <nav className={`lp-nav lp-container${session ? ' has-session' : ''}`} aria-label="Điều hướng trang chủ">
         <a className="lp-brand" href={home ? '#dau-trang' : '/'} aria-label="Nhóm 05, về trang chủ">
-          <span className="lp-brand-symbol"><Building2 size={23} strokeWidth={2.1} /></span>
+          <span className="lp-brand-symbol">
+            <img src={logoDark} alt="Logo Nhóm 05" className="lp-brand-logo" />
+          </span>
           <span><strong>Nhóm 05</strong><small>KÝ TÚC XÁ SINH VIÊN</small></span>
         </a>
         <div className="lp-nav-desktop">

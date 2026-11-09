@@ -49,13 +49,14 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { api, money, date, labels } from "./api";
-import RoomTypeEditor from './RoomTypeEditor';
-import RoomGallery, { coverOf } from './RoomGallery';
-import WireframePage from './WireframePage';
-import LandingPage from './LandingPage';
-import LandingNav from './landing/LandingNav';
-import ContactPage from './ContactPage';
+import { api, money, date, dateTime, labels } from "./api";
+import RoomTypeEditor from "./RoomTypeEditor";
+import RoomGallery, { coverOf } from "./RoomGallery";
+import LandingPage from "./LandingPage";
+import LandingNav from "./landing/LandingNav";
+import ContactPage from "./ContactPage";
+import logoLight from "../img/logo/Mainlogo-light.png";
+import logoDark from "../img/logo/Mainlogo-Dark.png";
 
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
@@ -66,14 +67,27 @@ const badge = (value) => (
 );
 const Text = ({ children }) => <span className="muted">{children || "—"}</span>;
 const durationOptions = [1, 3, 6, 12].map((months) => ({
-  value: String(months), label: `${months} tháng`,
+  value: String(months),
+  label: `${months} tháng`,
 }));
 function endAfterMonths(startDate, months) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate || "") || ![1, 3, 6, 12].includes(Number(months))) return "";
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(startDate || "") ||
+    ![1, 3, 6, 12].includes(Number(months))
+  )
+    return "";
   const start = new Date(`${startDate}T00:00:00Z`);
-  if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== startDate) return "";
-  const target = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + Number(months), 1));
-  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  if (
+    Number.isNaN(start.getTime()) ||
+    start.toISOString().slice(0, 10) !== startDate
+  )
+    return "";
+  const target = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + Number(months), 1),
+  );
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
   target.setUTCDate(Math.min(start.getUTCDate(), lastDay));
   return target.toISOString().slice(0, 10);
 }
@@ -182,6 +196,357 @@ function Confirm({ title, detail, onConfirm, onClose, busy }) {
     </Modal>
   );
 }
+// Đây là ghi chú mẫu: Component SearchableSelect cho phép gõ tìm kiếm và tự động lọc danh sách lựa chọn trong thời gian thực
+function SearchableSelect({
+  name,
+  value,
+  onChange,
+  options = [],
+  placeholder = "Nhập để tìm kiếm...",
+  required = false,
+  disabled = false,
+  emptyText = "Không tìm thấy kết quả phù hợp",
+  clearable = true,
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef(null);
+
+  // Tìm option đang được chọn theo value
+  const selectedOption = useMemo(
+    () => options.find((o) => String(o.value) === String(value)),
+    [options, value],
+  );
+
+  // Đóng dropdown khi nhấp chuột ra ngoài phạm vi container
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Tự động lọc danh sách theo từ khóa tìm kiếm (so khớp nhãn, mã, phụ chú...)
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return options;
+    const q = search.toLowerCase().trim();
+    return options.filter((o) => {
+      const matchLabel = o.label?.toLowerCase().includes(q);
+      const matchSub = o.sublabel?.toLowerCase().includes(q);
+      const matchVal = String(o.value)?.toLowerCase().includes(q);
+      const matchBadge = o.badge?.toLowerCase().includes(q);
+      const matchCode = o.code?.toLowerCase().includes(q);
+      const matchStudentCode = o.studentCode?.toLowerCase().includes(q);
+      return (
+        matchLabel ||
+        matchSub ||
+        matchVal ||
+        matchBadge ||
+        matchCode ||
+        matchStudentCode
+      );
+    });
+  }, [options, search]);
+
+  const handleSelect = (opt) => {
+    onChange(opt.value, opt);
+    setSearch("");
+    setOpen(false);
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onChange("", null);
+    setSearch("");
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`searchable-select-wrap ${disabled ? "is-disabled" : ""}`}
+      style={{ position: "relative", width: "100%" }}
+    >
+      <div
+        className={`searchable-select-box ${open ? "is-open" : ""}`}
+        onClick={() => {
+          if (!disabled) setOpen(true);
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          width: "100%",
+          minHeight: "40px",
+          padding: "6px 11px",
+          background: disabled ? "#f5f8f8" : "#ffffff",
+          border: open ? "1px solid #222222" : "1px solid #dfe8ea",
+          boxShadow: open ? "0 0 0 3px rgba(34, 34, 34, 0.12)" : "none",
+          borderRadius: "8px",
+          cursor: disabled ? "not-allowed" : "pointer",
+          transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+        }}
+      >
+        <Search size={16} style={{ color: "#839ba7", flexShrink: 0 }} />
+
+        {open ? (
+          <input
+            type="text"
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={placeholder}
+            style={{
+              flex: 1,
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              padding: 0,
+              fontSize: "14px",
+              color: "#375461",
+              minWidth: "60px",
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setOpen(false);
+              if (e.key === "Enter" && filteredOptions.length > 0) {
+                e.preventDefault();
+                handleSelect(filteredOptions[0]);
+              }
+            }}
+          />
+        ) : selectedOption ? (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                minWidth: 0,
+                marginRight: "4px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13.5px",
+                  fontWeight: 600,
+                  color: "#2d434e",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {selectedOption.label}
+              </span>
+              {selectedOption.sublabel && (
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "#748a94",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {selectedOption.sublabel}
+                </span>
+              )}
+            </div>
+            {selectedOption.badge && (
+              <span
+                className="badge"
+                style={{
+                  fontSize: "11px",
+                  padding: "2px 6px",
+                  flexShrink: 0,
+                }}
+              >
+                {selectedOption.badge}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span
+            style={{
+              flex: 1,
+              fontSize: "14px",
+              color: "#9aaab1",
+              userSelect: "none",
+            }}
+          >
+            {placeholder}
+          </span>
+        )}
+
+        {clearable && value && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            title="Xóa lựa chọn"
+            style={{
+              border: "none",
+              background: "transparent",
+              color: "#9aaab1",
+              cursor: "pointer",
+              padding: "2px",
+              display: "flex",
+              alignItems: "center",
+              borderRadius: "50%",
+            }}
+          >
+            <X size={15} />
+          </button>
+        )}
+
+        <ChevronDown
+          size={16}
+          style={{
+            color: "#839ba7",
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform 0.2s ease",
+            flexShrink: 0,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!disabled) setOpen(!open);
+          }}
+        />
+      </div>
+
+      {open && (
+        <div
+          className="searchable-select-menu"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            background: "#ffffff",
+            border: "1px solid #dfe8ea",
+            borderRadius: "8px",
+            boxShadow: "0 10px 25px rgba(27, 46, 56, 0.15)",
+            maxHeight: "250px",
+            overflowY: "auto",
+            padding: "4px 0",
+          }}
+        >
+          {filteredOptions.length === 0 ? (
+            <div
+              style={{
+                padding: "12px",
+                textAlign: "center",
+                color: "#8d9fa8",
+                fontSize: "13px",
+              }}
+            >
+              {emptyText} {search ? `cho "${search}"` : ""}
+            </div>
+          ) : (
+            filteredOptions.map((opt) => {
+              const isSelected = String(opt.value) === String(value);
+              return (
+                <div
+                  key={opt.value}
+                  onClick={() => handleSelect(opt)}
+                  style={{
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: isSelected ? "#f4f4f5" : "transparent",
+                    borderLeft: isSelected
+                      ? "3px solid #6a9bab"
+                      : "3px solid transparent",
+                    transition: "background 0.1s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected)
+                      e.currentTarget.style.background = "#f7fafb";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected)
+                      e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      minWidth: 0,
+                      flex: 1,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "13.5px",
+                          fontWeight: isSelected ? 700 : 500,
+                          color: isSelected ? "#244450" : "#375461",
+                        }}
+                      >
+                        {opt.label}
+                      </span>
+                      {opt.badge && (
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: "11px",
+                            padding: "1px 5px",
+                          }}
+                        >
+                          {opt.badge}
+                        </span>
+                      )}
+                    </div>
+                    {opt.sublabel && (
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "#7b919c",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {opt.sublabel}
+                      </span>
+                    )}
+                  </div>
+                  {isSelected && (
+                    <Check
+                      size={16}
+                      style={{
+                        color: "#222222",
+                        flexShrink: 0,
+                        marginLeft: "8px",
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Đây là ghi chú mẫu: Render component trường nhập liệu (hỗ trợ chế độ searchable select để lọc thời gian thực)
 function Field({
   label,
   name,
@@ -189,6 +554,7 @@ function Field({
   onChange,
   type = "text",
   options,
+  searchable = false,
   required = false,
   placeholder,
   min,
@@ -218,7 +584,16 @@ function Field({
         {label}
         {required && <em>*</em>}
       </span>
-      {options ? (
+      {searchable && options ? (
+        <SearchableSelect
+          name={name}
+          value={value}
+          onChange={(val) => change({ target: { name, value: val } })}
+          options={options}
+          placeholder={placeholder || `Nhập để lọc ${label.toLowerCase()}...`}
+          required={required}
+        />
+      ) : options ? (
         <select
           name={name}
           value={value ?? ""}
@@ -358,6 +733,9 @@ function Table({ columns, items, onRow }) {
     </div>
   );
 }
+function Pagination({ page, total, onChange }) {
+  return <Pager data={{ page, pages: total, total }} page={page} setPage={onChange} />;
+}
 function Pager({ data, page, setPage }) {
   if (!data || data.pages <= 1) return null;
   return (
@@ -473,21 +851,19 @@ const navStaff = [
   { to: "/students", label: "Sinh viên nội trú", icon: Users },
   { to: "/requests", label: "Yêu cầu lưu trú", icon: FileText },
   { to: "/transfers", label: "Chuyển phòng", icon: DoorOpen },
-  { to: "/rooms", label: "Vận hành phòng", icon: BedDouble },
   { to: "/readings", label: "Chỉ số điện nước", icon: Zap },
   { to: "/billing", label: "Lập khoản thu", icon: CircleDollarSign },
   { to: "/invoices", label: "Công nợ & thanh toán", icon: Wallet },
 ];
+// Đây là ghi chú mẫu: Sidebar của vai trò ADMIN chỉ gồm các mục quản trị hệ thống cốt lõi, không chứa menu của Staff
 const navAdmin = [
-  ...navStaff.slice(0, 1),
-  { to: "/report", label: "Báo cáo", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
+  { to: "/staff", label: "Quản lý tài khoản", icon: Users },
   { to: "/buildings", label: "Tòa nhà", icon: Building2 },
   { to: "/room-types", label: "Loại phòng", icon: BedDouble },
   { to: "/rooms", label: "Phòng", icon: DoorOpen },
   { to: "/periods", label: "Kỳ thu", icon: ClipboardList },
   { to: "/pricing", label: "Đơn giá", icon: CircleDollarSign },
-  { to: "/staff", label: "Nhân viên", icon: ShieldCheck },
-  ...navStaff.slice(1).filter((item) => item.to !== "/rooms"),
 ];
 function Shell({ children }) {
   const { session, logout } = useAuth();
@@ -497,7 +873,9 @@ function Shell({ children }) {
     () => localStorage.getItem("ktx_sidebar_collapsed") === "1",
   );
   const [popover, setPopover] = useState(null);
-  const [headerScrolled, setHeaderScrolled] = useState(() => window.scrollY > 18);
+  const [headerScrolled, setHeaderScrolled] = useState(
+    () => window.scrollY > 18,
+  );
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
@@ -507,7 +885,8 @@ function Shell({ children }) {
   const workSignature = useRef(null);
   const headerMenus = useRef(null);
   const location = useLocation();
-  const staffRole = session.user.role === "STAFF" || session.user.role === "ADMIN";
+  const staffRole =
+    session.user.role === "STAFF" || session.user.role === "ADMIN";
   useEffect(() => {
     const update = () => setHeaderScrolled(window.scrollY > 18);
     window.addEventListener("scroll", update, { passive: true });
@@ -520,9 +899,13 @@ function Shell({ children }) {
     api("/notifications?limit=500")
       .then((data) => {
         const items = data.items || [];
-        const totalUnread = data.unreadCount ?? items.filter((item) => !item.read).length;
+        const totalUnread =
+          data.unreadCount ?? items.filter((item) => !item.read).length;
         const signature = `${totalUnread}|${items.map((item) => `${item.id}:${item.read}`).join("|")}`;
-        if (notificationSignature.current !== null && notificationSignature.current !== signature)
+        if (
+          notificationSignature.current !== null &&
+          notificationSignature.current !== signature
+        )
           window.dispatchEvent(new Event("inbox-changed"));
         notificationSignature.current = signature;
         setNotifications(items);
@@ -534,16 +917,24 @@ function Shell({ children }) {
   };
   const refreshWorkQueue = () => {
     if (!staffRole) return;
-    api("/work-queue").then((data) => {
-      const signature = JSON.stringify(data);
-      if (workSignature.current !== null && workSignature.current !== signature)
-        window.dispatchEvent(new Event("work-queue-changed"));
-      workSignature.current = signature;
-      setWorkQueue(data);
-    }).catch(() => {});
+    api("/work-queue")
+      .then((data) => {
+        const signature = JSON.stringify(data);
+        if (
+          workSignature.current !== null &&
+          workSignature.current !== signature
+        )
+          window.dispatchEvent(new Event("work-queue-changed"));
+        workSignature.current = signature;
+        setWorkQueue(data);
+      })
+      .catch(() => {});
   };
   useEffect(() => {
-    const refresh = () => { refreshNotifications(); refreshWorkQueue(); };
+    const refresh = () => {
+      refreshNotifications();
+      refreshWorkQueue();
+    };
     refresh();
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") refresh();
@@ -598,51 +989,84 @@ function Shell({ children }) {
       : session.user.role === "ADMIN"
         ? navAdmin
         : navStaff;
-  const pendingByPath = staffRole ? {
-    "/applications": workQueue.applications || 0,
-    "/requests": workQueue.requests || 0,
-    "/readings": workQueue.readings || 0,
-    "/billing": workQueue.billing || 0,
-    "/invoices": workQueue.invoices || 0,
-  } : {};
+  const pendingByPath = staffRole
+    ? {
+        "/applications": workQueue.applications || 0,
+        "/requests": workQueue.requests || 0,
+        "/readings": workQueue.readings || 0,
+        "/billing": workQueue.billing || 0,
+        "/invoices": workQueue.invoices || 0,
+      }
+    : {};
   return (
     <div className="app-shell">
-      <aside className={`sidebar ${open ? "open" : ""} ${collapsed && !open ? "collapsed" : ""}`}>
+      <aside
+        className={`sidebar ${open ? "open" : ""} ${collapsed && !open ? "collapsed" : ""}`}
+      >
         <div className="sidebar-heading">
-          <Link to="/" className="brand" aria-label="Nhóm 05, về trang chủ">
-            <span className="brand-icon">
-              <Building2 size={23} strokeWidth={2.4} />
-            </span>
-            <div>
-              <strong>Nhóm 05</strong>
-              <small>HỆ THỐNG KÝ TÚC XÁ</small>
-            </div>
-          </Link>
-          <button
-            type="button"
-            className="icon-button sidebar-collapse"
-            title={collapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"}
-            aria-label={collapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"}
-            aria-expanded={!collapsed}
-            onClick={() => setCollapsed((value) => !value)}
-          >
-            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          </button>
+          {collapsed ? (
+            <button
+              type="button"
+              className="brand brand-toggle-btn"
+              onClick={() => setCollapsed(false)}
+              title="Mở rộng thanh điều hướng"
+              aria-label="Mở rộng thanh điều hướng"
+            >
+              <span className="brand-icon brand-icon-img">
+                <img
+                  src={logoLight}
+                  alt="Logo"
+                  className="brand-logo logo-normal"
+                />
+                <span className="logo-hover-icon">
+                  <PanelLeftOpen size={20} strokeWidth={2.2} />
+                </span>
+              </span>
+            </button>
+          ) : (
+            <>
+              <Link to="/" className="brand" aria-label="Về trang chủ">
+                <span className="brand-icon brand-icon-img">
+                  <img
+                    src={logoLight}
+                    alt="Logo"
+                    className="brand-logo"
+                  />
+                </span>
+              </Link>
+              <button
+                type="button"
+                className="icon-button sidebar-collapse"
+                title="Thu gọn thanh điều hướng"
+                aria-label="Thu gọn thanh điều hướng"
+                aria-expanded="true"
+                onClick={() => setCollapsed(true)}
+              >
+                <PanelLeftClose size={18} />
+              </button>
+            </>
+          )}
         </div>
-        <div className="sidebar-caption">KHÔNG GIAN CỦA BẠN</div>
         <nav>
           {nav.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
-              title={collapsed ? `${label}${pendingByPath[to] ? ` · ${pendingByPath[to]} chưa hoàn thành` : ""}` : undefined}
+              title={
+                collapsed
+                  ? `${label}${pendingByPath[to] ? ` · ${pendingByPath[to]} chưa hoàn thành` : ""}`
+                  : undefined
+              }
               aria-label={`${label}${pendingByPath[to] ? `, ${pendingByPath[to]} chưa hoàn thành` : ""}`}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 `nav-link ${isActive ? "active" : ""}`
               }
             >
-              <span className="nav-icon"><Icon size={18} />{pendingByPath[to] > 0 && <span className="nav-pending-dot" />}</span>
+              <span className="nav-icon">
+                <Icon size={18} />
+                {pendingByPath[to] > 0 && <span className="nav-pending-dot" />}
+              </span>
               <span className="nav-label">{label}</span>
             </NavLink>
           ))}
@@ -678,40 +1102,120 @@ function Shell({ children }) {
                 aria-expanded={popover === "notifications"}
                 aria-haspopup="dialog"
                 onClick={() => {
-                  setPopover((current) => current === "notifications" ? null : "notifications");
+                  setPopover((current) =>
+                    current === "notifications" ? null : "notifications",
+                  );
                   refreshNotifications();
                 }}
               >
                 <Bell size={19} />
-                {unreadCount > 0 && <span className="notification-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}
+                {unreadCount > 0 && (
+                  <span className="notification-count">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
               {popover === "notifications" && (
-                <div className="top-popover notifications-popover" role="dialog" aria-label="Thông báo của bạn">
-                  <div className="top-popover-head"><strong>Thông báo</strong><span>{unreadCount} chưa đọc</span></div>
+                <div
+                  className="top-popover notifications-popover"
+                  role="dialog"
+                  aria-label="Thông báo của bạn"
+                >
+                  <div className="top-popover-head">
+                    <strong>Thông báo</strong>
+                    <span>{unreadCount} chưa đọc</span>
+                  </div>
                   <div className="top-popover-list">
-                    {notificationsError && <p className="top-popover-message error">{notificationsError}</p>}
-                    {!notificationsLoaded && <p className="top-popover-message">Đang tải thông báo...</p>}
-                    {notificationsLoaded && !notifications.length && !notificationsError && <p className="top-popover-message">Chưa có thông báo.</p>}
+                    {notificationsError && (
+                      <p className="top-popover-message error">
+                        {notificationsError}
+                      </p>
+                    )}
+                    {!notificationsLoaded && (
+                      <p className="top-popover-message">
+                        Đang tải thông báo...
+                      </p>
+                    )}
+                    {notificationsLoaded &&
+                      !notifications.length &&
+                      !notificationsError && (
+                        <p className="top-popover-message">
+                          Chưa có thông báo.
+                        </p>
+                      )}
                     {notifications.slice(0, 6).map((item) => (
-                      <button type="button" key={item.id} className={`popover-notification ${item.read ? "read" : ""}`} onClick={() => openNotification(item)}>
-                        <span className="popover-notification-icon"><Bell size={15} /></span>
-                        <span className="popover-notification-copy"><strong>{item.title}</strong><span>{item.body}</span><small>{date(item.createdAt)}</small></span>
+                      <button
+                        type="button"
+                        key={item.id}
+                        className={`popover-notification ${item.read ? "read" : ""}`}
+                        onClick={() => openNotification(item)}
+                      >
+                        <span className="popover-notification-icon">
+                          <Bell size={15} />
+                        </span>
+                        <span className="popover-notification-copy">
+                          <strong>{item.title}</strong>
+                          <span>{item.body}</span>
+                          <small>{date(item.createdAt)}</small>
+                        </span>
                         {!item.read && <span className="popover-unread-dot" />}
                       </button>
                     ))}
                   </div>
-                  <Link to="/notifications" className="top-popover-footer" onClick={() => setPopover(null)}>Xem tất cả thông báo <ArrowRight size={15} /></Link>
+                  <Link
+                    to="/notifications"
+                    className="top-popover-footer"
+                    onClick={() => setPopover(null)}
+                  >
+                    Xem tất cả thông báo <ArrowRight size={15} />
+                  </Link>
                 </div>
               )}
             </div>
             <div className="top-menu-wrap">
-              <button type="button" className="top-avatar" aria-label="Mở menu tài khoản" aria-expanded={popover === "account"} aria-haspopup="menu" onClick={() => setPopover((current) => current === "account" ? null : "account")}>{session.profile?.fullName?.charAt(0) || "N"}</button>
+              <button
+                type="button"
+                className="top-avatar"
+                aria-label="Mở menu tài khoản"
+                aria-expanded={popover === "account"}
+                aria-haspopup="menu"
+                onClick={() =>
+                  setPopover((current) =>
+                    current === "account" ? null : "account",
+                  )
+                }
+              >
+                {session.profile?.fullName?.charAt(0) || "N"}
+              </button>
               {popover === "account" && (
-                <div className="top-popover account-popover" role="menu" aria-label="Tài khoản">
-                  <div className="account-popover-user"><strong>{session.profile?.fullName || session.user.email}</strong><span>{labels[session.user.role]}</span></div>
-                  <Link to="/profile" role="menuitem" onClick={() => setPopover(null)}><Users size={17} />Hồ sơ cá nhân</Link>
-                  {session.user.role === "ADMIN" && <Link to="/wireframe" role="menuitem" onClick={() => setPopover(null)}><LayoutDashboard size={17} />Wireframe</Link>}
-                  <button type="button" className="account-logout" role="menuitem" onClick={logout}><LogOut size={17} />Đăng xuất</button>
+                <div
+                  className="top-popover account-popover"
+                  role="menu"
+                  aria-label="Tài khoản"
+                >
+                  <div className="account-popover-user">
+                    <strong>
+                      {session.profile?.fullName || session.user.email}
+                    </strong>
+                    <span>{labels[session.user.role]}</span>
+                  </div>
+                  <Link
+                    to="/profile"
+                    role="menuitem"
+                    onClick={() => setPopover(null)}
+                  >
+                    <Users size={17} />
+                    Hồ sơ cá nhân
+                  </Link>
+                  <button
+                    type="button"
+                    className="account-logout"
+                    role="menuitem"
+                    onClick={logout}
+                  >
+                    <LogOut size={17} />
+                    Đăng xuất
+                  </button>
                 </div>
               )}
             </div>
@@ -754,13 +1258,11 @@ function AuthPage({ register = false }) {
     <div className="auth-page">
       <div className="auth-panel">
         <Link to="/" className="brand">
-          <span className="brand-icon">
-            <Building2 size={23} />
+          <span className="brand-icon brand-icon-img">
+            <img src={logoDark} alt="Logo Nhóm 05" className="brand-logo" />
           </span>
           <div>
-            <strong>
-              Nhóm 05
-            </strong>
+            <strong>Nhóm 05</strong>
             <small>KÝ TÚC XÁ SINH VIÊN</small>
           </div>
         </Link>
@@ -768,9 +1270,7 @@ function AuthPage({ register = false }) {
           <span className="eyebrow">
             {register ? "TÀI KHOẢN SINH VIÊN" : "QUẢN LÝ KÝ TÚC XÁ"}
           </span>
-          <h1>
-            {register ? "Tạo tài khoản sinh viên" : "Đăng nhập"}
-          </h1>
+          <h1>{register ? "Tạo tài khoản sinh viên" : "Đăng nhập"}</h1>
           <p>
             {register
               ? "Điền thông tin để bắt đầu đăng ký chỗ ở KTX."
@@ -866,12 +1366,14 @@ function AuthPage({ register = false }) {
         </div>
       </div>
       <div className="auth-visual">
-        <div className="visual-top">
-          NHÓM 05 · KÝ TÚC XÁ SINH VIÊN
-        </div>
+        <div className="visual-top">NHÓM 05 · KÝ TÚC XÁ SINH VIÊN</div>
         <div className="visual-copy">
           <span>PHÒNG Ở VÀ LƯU TRÚ</span>
-          <h2>Tìm phòng, <br />đăng ký và <br />theo dõi lưu trú.</h2>
+          <h2>
+            Tìm phòng, <br />
+            đăng ký và <br />
+            theo dõi lưu trú.
+          </h2>
           <p>Xem chỗ còn trống và quản lý hồ sơ trên cùng một hệ thống.</p>
         </div>
       </div>
@@ -890,13 +1392,23 @@ function Guard({ roles, children, plain = false }) {
 function Dashboard() {
   const { session } = useAuth();
   const role = session.user.role;
-  const apps = useLoad("/applications?limit=5"),
+  const apps = useLoad("/applications?limit=20"),
     stays = useLoad("/stays?limit=10"),
     invoices = useLoad("/invoices?limit=100"),
-    report = useLoad(role === "STUDENT" ? "/catalog" : "/report", []);
-  const n = useLoad("/notifications?limit=5");
+    report = useLoad(role === "STUDENT" ? "/catalog" : "/report", []),
+    requests = useLoad("/requests?limit=20"),
+    logs = useLoad("/activity-logs?limit=30");
+  const n = useLoad("/notifications?limit=15");
   useEffect(() => {
-    const refresh = () => { apps.load(); stays.load(); invoices.load(); report.load(); n.load(); };
+    const refresh = () => {
+      apps.load();
+      stays.load();
+      invoices.load();
+      report.load();
+      requests.load();
+      logs.load();
+      n.load();
+    };
     window.addEventListener("work-queue-changed", refresh);
     window.addEventListener("inbox-changed", refresh);
     return () => {
@@ -904,10 +1416,55 @@ function Dashboard() {
       window.removeEventListener("inbox-changed", refresh);
     };
   }, [role]);
-  const first =
-    role === "ADMIN"
-      ? "quản trị viên"
-      : session.profile?.fullName?.split(" ").at(-1) || "bạn";
+  // Đây là ghi chú mẫu: Đã bỏ phần banner chào mừng trên mọi giao diện theo yêu cầu thiết kế tinh gọn
+  // Đây là ghi chú mẫu: Trích xuất 10 giao dịch gần nhất, chuẩn hóa ngày thanh toán (date) và MSSV (studentCode)
+  const recentPayments = (invoices.data?.items || [])
+    .flatMap((inv) =>
+      (inv.payments || []).map((p) => {
+        const sCode = inv.student?.studentCode || inv.student?.code || "—";
+        const sName = inv.student?.fullName || "Sinh viên";
+        const rCode = inv.room?.code || "—";
+        const pMonth = inv.period?.month || "—";
+        const pDate = p.createdAt || (p.date ? (p.date.length === 10 ? p.date + "T10:30:00Z" : p.date) : "");
+        const receiptNo =
+          p.receiptNumber ||
+          "PT-" +
+            (pDate ? pDate.slice(0, 10).replace(/-/g, "") : "202610") +
+            "-" +
+            (p.id
+              ? p.id
+                  .replace(/[^0-9a-zA-Z]/g, "")
+                  .slice(-4)
+                  .toUpperCase()
+              : "0001");
+        return {
+          ...p,
+          paymentDate: pDate,
+          createdAt: pDate,
+          studentName: sName,
+          studentCode: sCode,
+          roomCode: rCode,
+          periodMonth: pMonth,
+          receiptNumber: receiptNo,
+          invoiceId: inv.id,
+        };
+      }),
+    )
+    .sort((a, b) => new Date(b.paymentDate || 0) - new Date(a.paymentDate || 0))
+    .slice(0, 10);
+
+  const pendingApps = (apps.data?.items || [])
+    .filter((x) => ["PENDING", "REVIEWING", "NEEDS_INFO"].includes(x.status))
+    .slice(0, 10);
+  const pendingRequests = (requests.data?.items || [])
+    .filter((x) => x.status === "PENDING")
+    .slice(0, 10);
+  // Đây là ghi chú mẫu: Nhật ký hệ thống sắp xếp theo mốc thời gian mới nhất (giờ:phút:giây)
+  const activityLogs = (logs.data?.items || [])
+    .slice()
+    .sort((a, b) => new Date(b.time || b.createdAt || 0) - new Date(a.time || a.createdAt || 0))
+    .slice(0, 20);
+
   const active = stays.data?.items?.find((x) => x.status === "ACTIVE"),
     due =
       invoices.data?.items
@@ -915,25 +1472,6 @@ function Dashboard() {
         .reduce((a, x) => a + x.balance, 0) || 0;
   return (
     <>
-      <div className="welcome">
-        <div>
-          <span className="eyebrow">
-            THỨ {new Date().getDay() + 1} · HÔM NAY
-          </span>
-          <h1>
-            Xin chào, {first} <span>✳</span>
-          </h1>
-          <p>
-            {role === "STUDENT"
-              ? "Mọi thông tin về cuộc sống ký túc xá của bạn nằm ở đây."
-              : "Cùng theo dõi hoạt động ký túc xá hôm nay."}
-          </p>
-        </div>
-        <div className="welcome-shape">
-          <div />
-          <Building2 size={70} />
-        </div>
-      </div>
       {role === "STUDENT" ? (
         <>
           <div className="metrics-grid">
@@ -1161,49 +1699,295 @@ function Dashboard() {
             </Section>
           </div>
           <Section
-            title="Hồ sơ cần xử lý"
-            subtitle="Các đăng ký mới nhất"
+            title="Lịch sử giao dịch thanh toán gần đây"
+            subtitle="Các khoản thu tiền phòng, điện nước mới nhất vừa ghi nhận vào hệ thống"
             action={
-              <Link to="/applications" className="text-link">
-                Xem tất cả <ArrowRight size={16} />
+              <Link to="/invoices" className="text-link">
+                Xem tất cả hóa đơn <ArrowRight size={16} />
               </Link>
             }
           >
-            {apps.data?.items?.length ? (
-              <Table
-                items={apps.data.items
-                  .filter((x) =>
-                    ["PENDING", "REVIEWING", "NEEDS_INFO"].includes(x.status),
-                  )
-                  .slice(0, 5)}
-                columns={[
-                  {
-                    key: "student",
-                    label: "Sinh viên",
-                    render: (x) => <strong>{x.student?.fullName}</strong>,
-                  },
-                  {
-                    key: "roomType",
-                    label: "Nguyện vọng",
-                    render: (x) => x.roomType?.name,
-                  },
-                  {
-                    key: "createdAt",
-                    label: "Ngày gửi",
-                    render: (x) => date(x.createdAt),
-                  },
-                  {
-                    key: "status",
-                    label: "Trạng thái",
-                    render: (x) => badge(x.status),
-                  },
-                ]}
-                onRow={(x) => (location.href = `/applications/${x.id}`)}
-              />
+            {/* Đây là ghi chú mẫu: Bảng thanh toán hiển thị 10 giao dịch gần nhất, có vùng cuộn tiện tra cứu */}
+            {recentPayments.length ? (
+              <div
+                style={{
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  border: "1px solid var(--border)",
+                  borderRadius: "10px",
+                }}
+              >
+                <Table
+                  items={recentPayments}
+                  columns={[
+                    {
+                      key: "paymentDate",
+                      label: "Thời gian",
+                      render: (p) => (
+                        <span className="muted" style={{ fontSize: "13px" }}>
+                          {dateTime(p.paymentDate || p.createdAt)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "student",
+                      label: "Sinh viên",
+                      render: (p) => (
+                        <div>
+                          <strong>{p.studentName}</strong>
+                          <div
+                            style={{ fontSize: "12px", color: "var(--muted)" }}
+                          >
+                            MSSV: {p.studentCode}
+                          </div>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "room",
+                      label: "Phòng & Kỳ thu",
+                      render: (p) => (
+                        <span>
+                          Phòng <strong>{p.roomCode}</strong> · Kỳ{" "}
+                          {p.periodMonth}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "method",
+                      label: "Hình thức",
+                      render: (p) => (
+                        <span style={{ fontSize: "13px" }}>
+                          {p.method === "TRANSFER"
+                            ? "Chuyển khoản"
+                            : "Tiền mặt"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "amount",
+                      label: "Số tiền",
+                      render: (p) => (
+                        <strong
+                          style={{ color: "#16a34a", fontSize: "14.5px" }}
+                        >
+                          +{money(p.amount)}
+                        </strong>
+                      ),
+                    },
+                    {
+                      key: "receipt",
+                      label: "Mã biên lai",
+                      render: (p) => (
+                        <span
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: "12.5px",
+                            color: "var(--muted)",
+                          }}
+                        >
+                          {p.receiptNumber}
+                        </span>
+                      ),
+                    },
+                  ]}
+                  onRow={(p) => (location.href = `/invoices/${p.invoiceId}`)}
+                />
+              </div>
             ) : (
-              <Empty />
+              <Empty icon={Wallet} title="Chưa có giao dịch thanh toán nào" />
             )}
           </Section>
+
+          <div className="dashboard-grid">
+            <Section
+              title="Hồ sơ & Yêu cầu chờ xử lý"
+              subtitle="Các đề xuất lưu trú, chuyển phòng và đăng ký mới nhất"
+              action={
+                <Link to="/applications" className="text-link">
+                  Hồ sơ đăng ký <ArrowRight size={16} />
+                </Link>
+              }
+            >
+              {/* Đây là ghi chú mẫu: Danh sách hồ sơ và yêu cầu có vùng cuộn tự động khi nhiều mục */}
+              {pendingApps.length || pendingRequests.length ? (
+                <div
+                  style={{
+                    maxHeight: "330px",
+                    overflowY: "auto",
+                    paddingRight: "6px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  {pendingApps.map((x) => (
+                    <div
+                      key={x.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid var(--border)",
+                        background: "var(--surface)",
+                      }}
+                    >
+                      <div>
+                        <strong>{x.student?.fullName || "Sinh viên"}</strong>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--muted)",
+                            marginTop: "2px",
+                          }}
+                        >
+                          Đăng ký: {x.roomType?.name} · {dateTime(x.createdAt)}
+                        </div>
+                      </div>
+                      {badge(x.status)}
+                    </div>
+                  ))}
+                  {pendingRequests.map((r) => (
+                    <div
+                      key={r.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid var(--border)",
+                        background: "var(--surface)",
+                      }}
+                    >
+                      <div>
+                        <strong>Yêu cầu {labels[r.type] || r.type}</strong>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--muted)",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {r.reason || "Đề xuất lưu trú"} · {dateTime(r.createdAt)}
+                        </div>
+                      </div>
+                      {badge(r.status)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty
+                  icon={ClipboardList}
+                  title="Không có hồ sơ nào đang chờ"
+                />
+              )}
+            </Section>
+
+            <Section
+              title="Nhật ký hoạt động hệ thống"
+              subtitle="Ghi nhận toàn bộ thao tác nghiệp vụ của mọi vai trò theo thời gian thực"
+              action={
+                <button
+                  type="button"
+                  onClick={() => logs.load()}
+                  className="text-link"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "13px",
+                    color: "var(--accent)",
+                  }}
+                >
+                  Cập nhật nhật ký
+                </button>
+              }
+            >
+              {/* Đây là ghi chú mẫu: Danh sách nhật ký thao tác hệ thống thời gian thực có cuộn xem nhiều mục */}
+              {logs.loading && !logs.data ? (
+                <Loading />
+              ) : activityLogs.length ? (
+                <div
+                  style={{
+                    maxHeight: "330px",
+                    overflowY: "auto",
+                    paddingRight: "6px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  {activityLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "12px",
+                        padding: "11px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid var(--border)",
+                        background: "var(--surface)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          background:
+                            log.actorRole === "ADMIN"
+                              ? "#dc2626"
+                              : log.actorRole === "STAFF"
+                                ? "#2563eb"
+                                : "#16a34a",
+                          marginTop: "6px",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "8px",
+                          }}
+                        >
+                          <strong style={{ fontSize: "13.5px" }}>
+                            {log.title}
+                          </strong>
+                          <small
+                            className="muted"
+                            style={{ whiteSpace: "nowrap" }}
+                          >
+                            {dateTime(log.time || log.createdAt)}
+                          </small>
+                        </div>
+                        <p
+                          style={{
+                            margin: "3px 0 0",
+                            fontSize: "12.5px",
+                            color: "var(--muted)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {log.body}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty icon={Bell} title="Chưa có nhật ký hoạt động" />
+              )}
+            </Section>
+          </div>
         </>
       )}
     </>
@@ -1217,7 +2001,9 @@ function RoomCatalog() {
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1),
     [building, setBuilding] = useState(""),
-    [type, setType] = useState(() => new URLSearchParams(routeLocation.search).get("type") || ""),
+    [type, setType] = useState(
+      () => new URLSearchParams(routeLocation.search).get("type") || "",
+    ),
     [vacant, setVacant] = useState(false),
     [maxFee, setMaxFee] = useState(""),
     [selected, setSelected] = useState(null),
@@ -1305,198 +2091,321 @@ function RoomCatalog() {
     },
   ];
   return (
-    <div className={`room-catalog${session ? "" : " ktx-landing dorm-landing public-catalog catalog-public"}`}>
+    <div
+      className={`room-catalog${session ? "" : " ktx-landing dorm-landing public-catalog catalog-public"}`}
+    >
       {!session && <LandingNav session={session} home={false} />}
       <div className={`catalog-content${session ? "" : " dl-container"}`}>
-      <PageTitle
-        kicker="PHÒNG Ở KÝ TÚC XÁ"
-        title={isStaff ? "Danh sách phòng" : "Tìm phòng phù hợp"}
-        description={
-          isStaff
-            ? "Theo dõi sức chứa và trạng thái phòng theo thời gian thực."
-            : "Tìm hiểu phòng trước khi gửi nguyện vọng đăng ký."
-        }
-        action={
-          isAdmin && (
-            <button
-              className="button button-primary"
-              onClick={() => setEdit({ status: "ACTIVE", floor: 1 })}
-            >
-              <Plus size={17} />
-              Thêm phòng
-            </button>
-          )
-        }
-      />
-      <section className="room-type-section">
-        <div className="room-type-heading"><div><span className="eyebrow">XEM ẢNH VÀ THÔNG TIN</span><h2>Loại phòng</h2></div><span>{cat.data?.roomTypes?.filter(x => x.status === 'ACTIVE').length || 0} loại phòng</span></div>
-        <div className="room-type-grid">{cat.data?.roomTypes?.filter(x=>x.status==='ACTIVE').map(roomType=>{
-          const cover=coverOf(roomType);
-          const sameRooms=cat.data?.rooms?.filter(room=>room.roomTypeId===roomType.id && room.status==='ACTIVE')||[];
-          const spaces=sameRooms.reduce((sum,room)=>sum+room.vacant,0);
-          return <button type="button" className="room-type-card" key={roomType.id} onClick={()=>setSelectedType(roomType)}>
-            <div className="room-type-card-media"><div className="room-type-card-placeholder"><BedDouble size={33}/></div>{cover && <img src={cover.url} alt={cover.description||roomType.name} loading="lazy" onError={event=>{event.currentTarget.style.display='none'}}/>}</div>
-            <div className="room-type-card-copy"><div><strong>{roomType.name}</strong><span>{roomType.defaultCapacity} người / phòng · {spaces} chỗ trống</span></div><small>{money(roomType.fee)} / tháng</small><span className="catalog-view-detail">Xem chi tiết <ArrowRight size={17} /></span></div>
-          </button>;
-        })}</div>
-      </section>
-      <div className="filter-panel">
-        <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="Tìm mã phòng, loại phòng..."
-        >
-          <select
-            aria-label="Lọc theo tòa nhà"
-            value={building}
-            onChange={(e) => setBuilding(e.target.value)}
-          >
-            <option value="">Tất cả tòa</option>
-            {cat.data?.buildings?.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </select>
-          <select aria-label="Lọc theo loại phòng" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">Tất cả loại phòng</option>
-            {cat.data?.roomTypes?.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            min="0"
-            placeholder="Phí tối đa"
-            value={maxFee}
-            onChange={(e) => setMaxFee(e.target.value)}
-          />
-          <label className="check-filter">
-            <input
-              type="checkbox"
-              checked={vacant}
-              onChange={(e) => setVacant(e.target.checked)}
-            />{" "}
-            Còn chỗ
-          </label>
-        </SearchBar>
-      </div>
-      <div className="list-count">
-        Hiển thị <strong>{roomList.length}</strong> phòng
-      </div>
-      {cat.loading ? (
-        <Loading />
-      ) : cat.error ? (
-        <div className="inline-error">{cat.error}</div>
-      ) : roomList.length ? (
-        <>
-          <div className="room-grid">
-            {visibleRooms.map((x) => (
+        <PageTitle
+          kicker="PHÒNG Ở KÝ TÚC XÁ"
+          title={isStaff ? "Danh sách phòng" : "Tìm phòng phù hợp"}
+          description={
+            isStaff
+              ? "Theo dõi sức chứa và trạng thái phòng theo thời gian thực."
+              : "Tìm hiểu phòng trước khi gửi nguyện vọng đăng ký."
+          }
+          action={
+            isAdmin && (
               <button
-                key={x.id}
-                className="room-card"
-                onClick={() => setSelected(x)}
+                className="button button-primary"
+                onClick={() => setEdit({ status: "ACTIVE", floor: 1 })}
               >
-                <div className="room-card-art">
-                  <div className="catalog-room-placeholder" aria-hidden="true"><BedDouble size={44} strokeWidth={1.2} /><span>Ảnh phòng đang cập nhật</span></div>
-                  {coverOf(x.roomType) && <img className="room-card-image" src={coverOf(x.roomType).url} alt={x.roomType?.name} loading="lazy" onError={event=>{event.currentTarget.style.display='none'}}/>}
-                  <span
-                    className={`availability ${x.vacant ? "available" : "full"}`}
-                  >
-                    {x.vacant ? `${x.vacant} chỗ trống` : "Đã đầy"}
-                  </span>
-                </div>
-                <div className="room-card-body">
-                  <div className="room-meta">
-                    <span>
-                      {x.building?.name} · Tầng {x.floor}
-                    </span>
-                    {badge(x.status)}
-                  </div>
-                  <h3>Phòng {x.code}</h3>
-                  <p>{x.roomType?.name}</p>
-                  <div className="room-card-foot">
-                    <strong>
-                      {money(x.roomType?.fee)}
-                      <small>/ tháng</small>
-                    </strong>
-                    <span>
-                      <ArrowRight size={18} />
-                    </span>
-                  </div>
-                </div>
+                <Plus size={17} />
+                Thêm phòng
               </button>
-            ))}
-          </div>
-          <Pager
-            data={{ page, pages: roomPages, total: roomList.length }}
-            page={page}
-            setPage={setPage}
-          />
-        </>
-      ) : (
-        <Empty
-          icon={BedDouble}
-          title="Không có phòng phù hợp"
-          detail="Thử thay đổi bộ lọc để xem thêm phòng."
+            )
+          }
         />
-      )}
-      {selected && (
-        <Modal
-          title={`Phòng ${selected.code}`}
-          onClose={() => setSelected(null)}
-          wide
-        >
-          <RoomGallery type={selected.roomType} room={selected} rooms={cat.data?.rooms || []}>
-            {isStaff ? (
-              <button
-                className="button button-primary"
-                onClick={() => {
-                  setEdit(selected);
-                  setSelected(null);
-                }}
-              >
-                Cập nhật phòng
-              </button>
-            ) : (
-              <Link
-                className="button button-primary"
-                to={session ? "/applications" : "/register"}
-                state={session ? { openApplication: true, roomTypeId: selected.roomTypeId, preferredRoomId: selected.id } : undefined}
-              >
-                Gửi nguyện vọng <ArrowRight size={16} />
-              </Link>
-            )}
-          </RoomGallery>
-        </Modal>
-      )}
-      {selectedType && <Modal title={selectedType.name} onClose={()=>setSelectedType(null)} wide>
-        <RoomGallery type={selectedType} rooms={cat.data?.rooms || []}>
-          {isStaff ? <button className="button button-primary" onClick={()=>{setType(selectedType.id);setSelectedType(null);}}>Xem phòng thuộc loại này <ArrowRight size={16}/></button> : <Link className="button button-primary" to={session?'/applications':'/register'} state={session ? { openApplication: true, roomTypeId: selectedType.id } : undefined}>Gửi nguyện vọng <ArrowRight size={16}/></Link>}
-        </RoomGallery>
-      </Modal>}
-      {edit && (
-        <Modal
-          title={edit.id ? "Cập nhật phòng" : "Thêm phòng mới"}
-          onClose={() => setEdit(null)}
-        >
-          <Form
-            fields={
-              isAdmin
-                ? roomFields
-                : roomFields.filter((f) =>
-                    ["operationalCapacity", "status"].includes(f.name),
-                  )
-            }
-            initial={edit}
-            onSave={save}
-            onCancel={() => setEdit(null)}
+        <section className="room-type-section">
+          <div className="room-type-heading">
+            <div>
+              <span className="eyebrow">XEM ẢNH VÀ THÔNG TIN</span>
+              <h2>Loại phòng</h2>
+            </div>
+            <span>
+              {cat.data?.roomTypes?.filter((x) => x.status === "ACTIVE")
+                .length || 0}{" "}
+              loại phòng
+            </span>
+          </div>
+          <div className="room-type-grid">
+            {cat.data?.roomTypes
+              ?.filter((x) => x.status === "ACTIVE")
+              .map((roomType) => {
+                const cover = coverOf(roomType);
+                const sameRooms =
+                  cat.data?.rooms?.filter(
+                    (room) =>
+                      room.roomTypeId === roomType.id &&
+                      room.status === "ACTIVE",
+                  ) || [];
+                const spaces = sameRooms.reduce(
+                  (sum, room) => sum + room.vacant,
+                  0,
+                );
+                return (
+                  <button
+                    type="button"
+                    className="room-type-card"
+                    key={roomType.id}
+                    onClick={() => setSelectedType(roomType)}
+                  >
+                    <div className="room-type-card-media">
+                      <div className="room-type-card-placeholder">
+                        <BedDouble size={33} />
+                      </div>
+                      {cover && (
+                        <img
+                          src={cover.url}
+                          alt={cover.description || roomType.name}
+                          loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                          }}
+                        />
+                      )}
+                    </div>
+                    <div className="room-type-card-copy">
+                      <div>
+                        <strong>{roomType.name}</strong>
+                        <span>
+                          {roomType.defaultCapacity} người / phòng · {spaces}{" "}
+                          chỗ trống
+                        </span>
+                      </div>
+                      <small>{money(roomType.fee)} / tháng</small>
+                      <span className="catalog-view-detail">
+                        Xem chi tiết <ArrowRight size={17} />
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+          </div>
+        </section>
+        <div className="filter-panel">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm mã phòng, loại phòng..."
+          >
+            <select
+              aria-label="Lọc theo tòa nhà"
+              value={building}
+              onChange={(e) => setBuilding(e.target.value)}
+            >
+              <option value="">Tất cả tòa</option>
+              {cat.data?.buildings?.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Lọc theo loại phòng"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
+              <option value="">Tất cả loại phòng</option>
+              {cat.data?.roomTypes?.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min="0"
+              placeholder="Phí tối đa"
+              value={maxFee}
+              onChange={(e) => setMaxFee(e.target.value)}
+            />
+            <label className="check-filter">
+              <input
+                type="checkbox"
+                checked={vacant}
+                onChange={(e) => setVacant(e.target.checked)}
+              />{" "}
+              Còn chỗ
+            </label>
+          </SearchBar>
+        </div>
+        <div className="list-count">
+          Hiển thị <strong>{roomList.length}</strong> phòng
+        </div>
+        {cat.loading ? (
+          <Loading />
+        ) : cat.error ? (
+          <div className="inline-error">{cat.error}</div>
+        ) : roomList.length ? (
+          <>
+            <div className="room-grid">
+              {visibleRooms.map((x) => (
+                <button
+                  key={x.id}
+                  className="room-card"
+                  onClick={() => setSelected(x)}
+                >
+                  <div className="room-card-art">
+                    <div
+                      className="catalog-room-placeholder"
+                      aria-hidden="true"
+                    >
+                      <BedDouble size={44} strokeWidth={1.2} />
+                      <span>Ảnh phòng đang cập nhật</span>
+                    </div>
+                    {coverOf(x.roomType) && (
+                      <img
+                        className="room-card-image"
+                        src={coverOf(x.roomType).url}
+                        alt={x.roomType?.name}
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div className="room-card-body">
+                    <div className="room-meta">
+                      <span>
+                        {x.building?.name} · Tầng {x.floor}
+                      </span>
+                    </div>
+                    <h3>Phòng {x.code}</h3>
+                    <p>{x.roomType?.name}</p>
+                    <div className="room-card-foot">
+                      <div>
+                        <strong>
+                          {money(x.roomType?.fee)}
+                          <small>/ tháng</small>
+                        </strong>
+                        <div
+                          style={{
+                            fontSize: "12.5px",
+                            fontWeight: 600,
+                            color: x.vacant ? "#16a34a" : "#dc2626",
+                            marginTop: "2px",
+                          }}
+                        >
+                          • {x.vacant ? `${x.vacant} chỗ trống` : "Đã đầy"}
+                        </div>
+                      </div>
+                      <span>
+                        <ArrowRight size={18} />
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <Pager
+              data={{ page, pages: roomPages, total: roomList.length }}
+              page={page}
+              setPage={setPage}
+            />
+          </>
+        ) : (
+          <Empty
+            icon={BedDouble}
+            title="Không có phòng phù hợp"
+            detail="Thử thay đổi bộ lọc để xem thêm phòng."
           />
-        </Modal>
-      )}
-      <Toast message={message} onClose={() => clear(null)} />
+        )}
+        {selected && (
+          <Modal
+            title={`Phòng ${selected.code}`}
+            onClose={() => setSelected(null)}
+            wide
+          >
+            <RoomGallery
+              type={selected.roomType}
+              room={selected}
+              rooms={cat.data?.rooms || []}
+            >
+              {isStaff ? (
+                <button
+                  className="button button-primary"
+                  onClick={() => {
+                    setEdit(selected);
+                    setSelected(null);
+                  }}
+                >
+                  Cập nhật phòng
+                </button>
+              ) : (
+                <Link
+                  className="button button-primary"
+                  to={session ? "/applications" : "/register"}
+                  state={
+                    session
+                      ? {
+                          openApplication: true,
+                          roomTypeId: selected.roomTypeId,
+                          preferredRoomId: selected.id,
+                        }
+                      : undefined
+                  }
+                >
+                  Gửi nguyện vọng <ArrowRight size={16} />
+                </Link>
+              )}
+            </RoomGallery>
+          </Modal>
+        )}
+        {selectedType && (
+          <Modal
+            title={selectedType.name}
+            onClose={() => setSelectedType(null)}
+            wide
+          >
+            <RoomGallery type={selectedType} rooms={cat.data?.rooms || []}>
+              {isStaff ? (
+                <button
+                  className="button button-primary"
+                  onClick={() => {
+                    setType(selectedType.id);
+                    setSelectedType(null);
+                  }}
+                >
+                  Xem phòng thuộc loại này <ArrowRight size={16} />
+                </button>
+              ) : (
+                <Link
+                  className="button button-primary"
+                  to={session ? "/applications" : "/register"}
+                  state={
+                    session
+                      ? { openApplication: true, roomTypeId: selectedType.id }
+                      : undefined
+                  }
+                >
+                  Gửi nguyện vọng <ArrowRight size={16} />
+                </Link>
+              )}
+            </RoomGallery>
+          </Modal>
+        )}
+        {edit && (
+          <Modal
+            title={edit.id ? "Cập nhật phòng" : "Thêm phòng mới"}
+            onClose={() => setEdit(null)}
+          >
+            <Form
+              fields={
+                isAdmin
+                  ? roomFields
+                  : roomFields.filter((f) =>
+                      ["operationalCapacity", "status"].includes(f.name),
+                    )
+              }
+              initial={edit}
+              onSave={save}
+              onCancel={() => setEdit(null)}
+            />
+          </Modal>
+        )}
+        <Toast message={message} onClose={() => clear(null)} />
       </div>
     </div>
   );
@@ -1525,10 +2434,12 @@ function Applications() {
     setShow(true);
     navigate(location.pathname, { replace: true, state: null });
   }, [isStudent, location.pathname, location.state, navigate]);
-  const eligibleTypes = cat.data?.roomTypes?.filter(
-    (type) => type.status === "ACTIVE" &&
-      (type.gender === "ANY" || type.gender === session.profile?.gender),
-  ) || [];
+  const eligibleTypes =
+    cat.data?.roomTypes?.filter(
+      (type) =>
+        type.status === "ACTIVE" &&
+        (type.gender === "ANY" || type.gender === session.profile?.gender),
+    ) || [];
   useEffect(() => {
     if (isStudent) return;
     const refresh = () => data.load();
@@ -1558,7 +2469,11 @@ function Applications() {
           isStudent && (
             <button
               className="button button-primary"
-              onClick={() => { setRequestedTypeId(""); setRequestedRoomId(""); setShow(true); }}
+              onClick={() => {
+                setRequestedTypeId("");
+                setRequestedRoomId("");
+                setShow(true);
+              }}
             >
               <Plus size={17} />
               Gửi hồ sơ mới
@@ -1615,17 +2530,27 @@ function Applications() {
                   label: "Loại phòng mong muốn",
                   render: (x) => x.roomType?.name,
                 },
-                ...(!isStudent ? [{
-                  key: "preferredRoom",
-                  label: "Phòng nguyện vọng",
-                  render: (x) => x.preferredRoom
-                    ? <span className="preferred-room-pill">★ {x.preferredRoom.code}</span>
-                    : <span className="muted">Chưa chọn phòng</span>,
-                }] : []),
+                ...(!isStudent
+                  ? [
+                      {
+                        key: "preferredRoom",
+                        label: "Phòng nguyện vọng",
+                        render: (x) =>
+                          x.preferredRoom ? (
+                            <span className="preferred-room-pill">
+                              ★ {x.preferredRoom.code}
+                            </span>
+                          ) : (
+                            <span className="muted">Chưa chọn phòng</span>
+                          ),
+                      },
+                    ]
+                  : []),
                 {
                   key: "durationMonths",
                   label: "Thời hạn",
-                  render: (x) => x.durationMonths ? `${x.durationMonths} tháng` : "—",
+                  render: (x) =>
+                    x.durationMonths ? `${x.durationMonths} tháng` : "—",
                 },
                 {
                   key: "startDate",
@@ -1662,71 +2587,94 @@ function Applications() {
       {show && (
         <Modal title="Gửi hồ sơ đăng ký" onClose={() => setShow(false)}>
           <p className="modal-intro">
-            Chọn loại phòng, phòng nguyện vọng và thời hạn ở. Nhân viên sẽ xác nhận phòng thực tế khi duyệt hồ sơ.
+            Chọn loại phòng, phòng nguyện vọng và thời hạn ở. Nhân viên sẽ xác
+            nhận phòng thực tế khi duyệt hồ sơ.
           </p>
-          {cat.loading ? <Loading /> : cat.error ? <div className="inline-error">{cat.error}</div> : <Form
-            fields={(values) => {
-              const rooms = (cat.data?.rooms || []).filter((room) =>
-                room.roomTypeId === values.roomTypeId && room.status === "ACTIVE" && room.building?.status === "ACTIVE");
-              return [
-              {
-                label: "Loại phòng mong muốn",
-                name: "roomTypeId",
-                required: true,
-                options:
-                  eligibleTypes.map((x) => ({
+          {cat.loading ? (
+            <Loading />
+          ) : cat.error ? (
+            <div className="inline-error">{cat.error}</div>
+          ) : (
+            <Form
+              fields={(values) => {
+                const rooms = (cat.data?.rooms || []).filter(
+                  (room) =>
+                    room.roomTypeId === values.roomTypeId &&
+                    room.status === "ACTIVE" &&
+                    room.building?.status === "ACTIVE",
+                );
+                return [
+                  {
+                    label: "Loại phòng mong muốn",
+                    name: "roomTypeId",
+                    required: true,
+                    options: eligibleTypes.map((x) => ({
                       value: x.id,
                       label: `${x.name} · ${money(x.fee)}/tháng`,
                     })),
-              },
-              {
-                label: "Phòng nguyện vọng",
-                name: "preferredRoomId",
-                required: rooms.length > 0,
-                options: rooms.map((room) => ({
-                  value: room.id,
-                  label: `${room.code} · ${room.building?.name || ""} · ${room.vacant > 0 ? `${room.vacant} chỗ trống` : "đã đầy"}`,
-                })),
-                hint: rooms.length ? "Đây là nguyện vọng; nhân viên sẽ xác nhận theo chỗ còn thực tế." : "Loại phòng này chưa có phòng cụ thể; bạn vẫn có thể gửi nguyện vọng loại phòng.",
-              },
-              {
-                label: "Ngày muốn bắt đầu ở",
-                name: "startDate",
-                type: "date",
-                required: true,
-              },
-              {
-                label: "Thời hạn đăng ký",
-                name: "durationMonths",
-                required: true,
-                options: durationOptions,
-              },
-              {
-                label: "Thông tin liên hệ",
-                name: "contact",
-                required: true,
-                placeholder: "Số điện thoại hoặc email",
-              },
-              { label: "Ghi chú", name: "note", rows: 3 },
-            ];
-            }}
-            initial={{
-              roomTypeId: eligibleTypes.some((type) => type.id === requestedTypeId) ? requestedTypeId : "",
-              preferredRoomId: requestedRoomId,
-              durationMonths: "",
-              contact: session.profile?.phone || "",
-            }}
-            resetOnChange={{ roomTypeId: ["preferredRoomId"] }}
-            onSave={save}
-            onCancel={() => setShow(false)}
-            submit="Gửi hồ sơ"
-          >
-            {(values) => endAfterMonths(values.startDate, values.durationMonths) && (
-              <div className="stay-date-preview">
-                Ngày kết thúc dự kiến: <strong>{date(endAfterMonths(values.startDate, values.durationMonths))}</strong>
-              </div>
-            )}
-          </Form>}
+                  },
+                  {
+                    label: "Phòng nguyện vọng",
+                    name: "preferredRoomId",
+                    required: rooms.length > 0,
+                    options: rooms.map((room) => ({
+                      value: room.id,
+                      label: `${room.code} · ${room.building?.name || ""} · ${room.vacant > 0 ? `${room.vacant} chỗ trống` : "đã đầy"}`,
+                    })),
+                    hint: rooms.length
+                      ? "Đây là nguyện vọng; nhân viên sẽ xác nhận theo chỗ còn thực tế."
+                      : "Loại phòng này chưa có phòng cụ thể; bạn vẫn có thể gửi nguyện vọng loại phòng.",
+                  },
+                  {
+                    label: "Ngày muốn bắt đầu ở",
+                    name: "startDate",
+                    type: "date",
+                    required: true,
+                  },
+                  {
+                    label: "Thời hạn đăng ký",
+                    name: "durationMonths",
+                    required: true,
+                    options: durationOptions,
+                  },
+                  {
+                    label: "Thông tin liên hệ",
+                    name: "contact",
+                    required: true,
+                    placeholder: "Số điện thoại hoặc email",
+                  },
+                  { label: "Ghi chú", name: "note", rows: 3 },
+                ];
+              }}
+              initial={{
+                roomTypeId: eligibleTypes.some(
+                  (type) => type.id === requestedTypeId,
+                )
+                  ? requestedTypeId
+                  : "",
+                preferredRoomId: requestedRoomId,
+                durationMonths: "",
+                contact: session.profile?.phone || "",
+              }}
+              resetOnChange={{ roomTypeId: ["preferredRoomId"] }}
+              onSave={save}
+              onCancel={() => setShow(false)}
+              submit="Gửi hồ sơ"
+            >
+              {(values) =>
+                endAfterMonths(values.startDate, values.durationMonths) && (
+                  <div className="stay-date-preview">
+                    Ngày kết thúc dự kiến:{" "}
+                    <strong>
+                      {date(
+                        endAfterMonths(values.startDate, values.durationMonths),
+                      )}
+                    </strong>
+                  </div>
+                )
+              }
+            </Form>
+          )}
         </Modal>
       )}
       <Toast message={message} onClose={() => clear(null)} />
@@ -1755,9 +2703,14 @@ function ApplicationDetail() {
           x.roomType.gender === "ANY" ||
           x.roomType.gender === item?.student?.gender),
     ) || [];
-  const preferredSuitable = suitable.find((room) => room.id === item?.preferredRoomId);
+  const preferredSuitable = suitable.find(
+    (room) => room.id === item?.preferredRoomId,
+  );
   const sortedSuitable = preferredSuitable
-    ? [preferredSuitable, ...suitable.filter((room) => room.id !== preferredSuitable.id)]
+    ? [
+        preferredSuitable,
+        ...suitable.filter((room) => room.id !== preferredSuitable.id),
+      ]
     : suitable;
   const submit = async (v) => {
     if (action === "supplement") {
@@ -1816,12 +2769,20 @@ function ApplicationDetail() {
             </div>
             <div>
               <span>Thời hạn đăng ký</span>
-              <strong>{item.durationMonths ? `${item.durationMonths} tháng` : "Hồ sơ cũ: chưa chọn"}</strong>
+              <strong>
+                {item.durationMonths
+                  ? `${item.durationMonths} tháng`
+                  : "Hồ sơ cũ: chưa chọn"}
+              </strong>
             </div>
-            {item.durationMonths && <div>
-              <span>Ngày kết thúc dự kiến</span>
-              <strong>{date(endAfterMonths(item.startDate, item.durationMonths))}</strong>
-            </div>}
+            {item.durationMonths && (
+              <div>
+                <span>Ngày kết thúc dự kiến</span>
+                <strong>
+                  {date(endAfterMonths(item.startDate, item.durationMonths))}
+                </strong>
+              </div>
+            )}
             <div>
               <span>Liên hệ</span>
               <strong>{item.contact}</strong>
@@ -1834,10 +2795,21 @@ function ApplicationDetail() {
           {item.preferredRoom ? (
             <div className="preferred-room-callout">
               <span>★ PHÒNG SINH VIÊN NGUYỆN VỌNG</span>
-              <strong>Phòng {item.preferredRoom.code} · {item.preferredRoom.building?.name}</strong>
-              <small>{item.preferredRoom.vacant > 0 ? `${item.preferredRoom.vacant} chỗ còn trống hiện tại` : "Hiện đã hết chỗ; nhân viên có thể chọn phòng khác cùng loại."}</small>
+              <strong>
+                Phòng {item.preferredRoom.code} ·{" "}
+                {item.preferredRoom.building?.name}
+              </strong>
+              <small>
+                {item.preferredRoom.vacant > 0
+                  ? `${item.preferredRoom.vacant} chỗ còn trống hiện tại`
+                  : "Hiện đã hết chỗ; nhân viên có thể chọn phòng khác cùng loại."}
+              </small>
             </div>
-          ) : <p className="detail-note">Hồ sơ này chỉ chọn loại phòng, chưa chọn phòng cụ thể.</p>}
+          ) : (
+            <p className="detail-note">
+              Hồ sơ này chỉ chọn loại phòng, chưa chọn phòng cụ thể.
+            </p>
+          )}
           {item.note && <p className="detail-note">Ghi chú: {item.note}</p>}
           {item.reviewNote && (
             <p className="detail-note">Ghi chú kiểm tra: {item.reviewNote}</p>
@@ -1938,9 +2910,14 @@ function ApplicationDetail() {
                       label: "Phòng phù hợp",
                       name: "roomId",
                       required: true,
+                      searchable: sortedSuitable.length > 3,
+                      placeholder: "Nhập mã phòng để lọc nhanh...",
                       options: sortedSuitable.map((x) => ({
                         value: x.id,
-                        label: `${x.id === item.preferredRoomId ? "★ NGUYỆN VỌNG · " : ""}${x.code} · ${x.building?.name} · ${x.vacant} chỗ trống`,
+                        label: `${x.id === item.preferredRoomId ? "★ NGUYỆN VỌNG · " : ""}Phòng ${x.code}`,
+                        sublabel: `${x.building?.name || ""} · Còn ${x.vacant} chỗ trống`,
+                        badge: `Còn ${x.vacant} chỗ`,
+                        code: x.code,
                       })),
                     },
                     {
@@ -1949,66 +2926,75 @@ function ApplicationDetail() {
                       type: "date",
                       required: true,
                     },
-                    ...(!item.durationMonths ? [{
-                      label: "Ngày kết thúc dự kiến (hồ sơ cũ)",
-                      name: "endDate",
-                      type: "date",
-                      required: true,
-                    }] : []),
+                    ...(!item.durationMonths
+                      ? [
+                          {
+                            label: "Ngày kết thúc dự kiến (hồ sơ cũ)",
+                            name: "endDate",
+                            type: "date",
+                            required: true,
+                          },
+                        ]
+                      : []),
                   ]
                 : action === "supplement"
                   ? (values) => {
-                    const rooms = (cat.data?.rooms || []).filter((room) =>
-                      room.roomTypeId === values.roomTypeId && room.status === "ACTIVE" && room.building?.status === "ACTIVE");
-                    return [
-                      {
-                        label: "Loại phòng mong muốn",
-                        name: "roomTypeId",
-                        required: true,
-                        options:
-                          cat.data?.roomTypes
-                            ?.filter(
-                              (x) =>
-                                x.status === "ACTIVE" &&
-                                (x.gender === "ANY" ||
-                                  x.gender === item.student?.gender),
-                            )
-                            .map((x) => ({ value: x.id, label: x.name })) || [],
-                      },
-                      {
-                        label: "Phòng nguyện vọng",
-                        name: "preferredRoomId",
-                        required: rooms.length > 0,
-                        options: rooms.map((room) => ({
-                          value: room.id,
-                          label: `${room.code} · ${room.building?.name || ""} · ${room.vacant > 0 ? `${room.vacant} chỗ trống` : "đã đầy"}`,
-                        })),
-                      },
-                      {
-                        label: "Ngày muốn bắt đầu ở",
-                        name: "startDate",
-                        type: "date",
-                        required: true,
-                      },
-                      {
-                        label: "Thời hạn đăng ký",
-                        name: "durationMonths",
-                        required: true,
-                        options: durationOptions,
-                      },
-                      {
-                        label: "Thông tin liên hệ",
-                        name: "contact",
-                        required: true,
-                      },
-                      {
-                        label: "Thông tin bổ sung",
-                        name: "note",
-                        rows: 3,
-                        required: true,
-                      },
-                    ];
-                  }
+                      const rooms = (cat.data?.rooms || []).filter(
+                        (room) =>
+                          room.roomTypeId === values.roomTypeId &&
+                          room.status === "ACTIVE" &&
+                          room.building?.status === "ACTIVE",
+                      );
+                      return [
+                        {
+                          label: "Loại phòng mong muốn",
+                          name: "roomTypeId",
+                          required: true,
+                          options:
+                            cat.data?.roomTypes
+                              ?.filter(
+                                (x) =>
+                                  x.status === "ACTIVE" &&
+                                  (x.gender === "ANY" ||
+                                    x.gender === item.student?.gender),
+                              )
+                              .map((x) => ({ value: x.id, label: x.name })) ||
+                            [],
+                        },
+                        {
+                          label: "Phòng nguyện vọng",
+                          name: "preferredRoomId",
+                          required: rooms.length > 0,
+                          options: rooms.map((room) => ({
+                            value: room.id,
+                            label: `${room.code} · ${room.building?.name || ""} · ${room.vacant > 0 ? `${room.vacant} chỗ trống` : "đã đầy"}`,
+                          })),
+                        },
+                        {
+                          label: "Ngày muốn bắt đầu ở",
+                          name: "startDate",
+                          type: "date",
+                          required: true,
+                        },
+                        {
+                          label: "Thời hạn đăng ký",
+                          name: "durationMonths",
+                          required: true,
+                          options: durationOptions,
+                        },
+                        {
+                          label: "Thông tin liên hệ",
+                          name: "contact",
+                          required: true,
+                        },
+                        {
+                          label: "Thông tin bổ sung",
+                          name: "note",
+                          rows: 3,
+                          required: true,
+                        },
+                      ];
+                    }
                   : action === "reject"
                     ? [
                         {
@@ -2036,13 +3022,20 @@ function ApplicationDetail() {
                     roomTypeId: item.roomTypeId,
                     preferredRoomId: item.preferredRoomId || "",
                     startDate: item.startDate,
-                    durationMonths: item.durationMonths ? String(item.durationMonths) : "",
+                    durationMonths: item.durationMonths
+                      ? String(item.durationMonths)
+                      : "",
                     contact: item.contact,
                     note: item.note,
                   }
-                : { startDate: item.startDate, roomId: preferredSuitable?.id || "" }
+                : {
+                    startDate: item.startDate,
+                    roomId: preferredSuitable?.id || "",
+                  }
             }
-            resetOnChange={action === "supplement" ? { roomTypeId: ["preferredRoomId"] } : {}}
+            resetOnChange={
+              action === "supplement" ? { roomTypeId: ["preferredRoomId"] } : {}
+            }
             onSave={(v) =>
               submit(
                 action === "review"
@@ -2053,17 +3046,27 @@ function ApplicationDetail() {
             onCancel={() => setAction("")}
           >
             {(values) => {
-              const months = action === "approve" ? item.durationMonths : values.durationMonths;
+              const months =
+                action === "approve"
+                  ? item.durationMonths
+                  : values.durationMonths;
               const endDate = endAfterMonths(values.startDate, months);
-              return ["approve", "supplement"].includes(action) && endDate && (
-                <div className="stay-date-preview">
-                  Thời hạn: <strong>{months} tháng</strong> · Ngày kết thúc dự kiến: <strong>{date(endDate)}</strong>
-                </div>
+              return (
+                ["approve", "supplement"].includes(action) &&
+                endDate && (
+                  <div className="stay-date-preview">
+                    Thời hạn: <strong>{months} tháng</strong> · Ngày kết thúc dự
+                    kiến: <strong>{date(endDate)}</strong>
+                  </div>
+                )
               );
             }}
           </Form>
           {action === "approve" && item.preferredRoom && !preferredSuitable && (
-            <div className="inline-warning">Phòng nguyện vọng hiện không còn phù hợp hoặc đã đầy. Hãy chọn phòng khác cùng loại.</div>
+            <div className="inline-warning">
+              Phòng nguyện vọng hiện không còn phù hợp hoặc đã đầy. Hãy chọn
+              phòng khác cùng loại.
+            </div>
           )}
           {action === "approve" && !suitable.length && (
             <div className="inline-error">
@@ -2505,6 +3508,7 @@ function StudentsPage() {
             value={building}
             onChange={(e) => {
               setBuilding(e.target.value);
+              setRoom(""); // Reset phòng khi đổi tòa nhà để lọc chuẩn xác
               setPage(1);
             }}
           >
@@ -2523,11 +3527,13 @@ function StudentsPage() {
             }}
           >
             <option value="">Tất cả phòng</option>
-            {cat.data?.rooms?.map((x) => (
-              <option value={x.id} key={x.id}>
-                {x.code}
-              </option>
-            ))}
+            {cat.data?.rooms
+              ?.filter((x) => !building || x.buildingId === building)
+              ?.map((x) => (
+                <option value={x.id} key={x.id}>
+                  {x.code} {x.building?.name ? `(${x.building.name})` : ""}
+                </option>
+              ))}
           </select>
           <select
             value={status}
@@ -2722,6 +3728,369 @@ function StudentDetail() {
     </>
   );
 }
+// Đây là ghi chú mẫu: Modal tạo lượt chuyển phòng cho sinh viên kèm tính năng tìm kiếm thông minh và kiểm tra giới tính/chỗ trống
+function TransferModal({ onClose, onSuccess, students, catalog }) {
+  const [studentId, setStudentId] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [transferDate, setTransferDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  // Hàm tra cứu thông tin phòng hiện tại của sinh viên từ catalog
+  const getStudentRoom = (s) => {
+    if (!s) return null;
+    const currentRoomId = s.stay?.roomId || s.roomId || s.room?.id;
+    return (
+      (catalog.data?.rooms || []).find((r) => r.id === currentRoomId) ||
+      s.room ||
+      null
+    );
+  };
+
+  // Lấy danh sách tất cả sinh viên đang có lượt lưu trú hoạt động
+  const residentStudents = useMemo(() => {
+    return (students.data?.items || []).filter(
+      (s) => s.stay && s.stay.status === "ACTIVE",
+    );
+  }, [students.data]);
+
+  // Sinh viên được chọn
+  const selectedStudent = useMemo(() => {
+    return residentStudents.find((s) => s.id === studentId);
+  }, [residentStudents, studentId]);
+
+  // Phòng hiện tại của sinh viên được chọn
+  const selectedStudentRoom = useMemo(() => {
+    return getStudentRoom(selectedStudent);
+  }, [selectedStudent, catalog.data?.rooms]);
+
+  // Danh sách options sinh viên để tìm kiếm theo MSSV hoặc họ tên trong thời gian thực
+  const studentOptions = useMemo(() => {
+    return residentStudents.map((s) => {
+      const room = getStudentRoom(s);
+      const roomCode = room?.code || "—";
+      const bldgName = room?.building?.name || "";
+      return {
+        value: s.id,
+        label: `${s.fullName} · MSSV: ${s.studentCode}`,
+        sublabel: `Phòng hiện tại: ${roomCode}${bldgName ? ` (${bldgName})` : ""} · Giới tính: ${s.gender === "FEMALE" ? "Nữ" : "Nam"}`,
+        badge: roomCode !== "—" ? `Phòng ${roomCode}` : "",
+        studentCode: s.studentCode,
+        fullName: s.fullName,
+      };
+    });
+  }, [residentStudents, catalog.data?.rooms]);
+
+  // Tự động lọc phòng phù hợp cho sinh viên:
+  // - Khác phòng hiện tại của sinh viên
+  // - Đúng giới tính (hoặc loại phòng ANY)
+  // - Còn chỗ trống (vacant > 0)
+  // - Phòng và tòa nhà đang ACTIVE
+  const availableRooms = useMemo(() => {
+    if (!catalog.data?.rooms || !selectedStudent) return [];
+    const currentRoomId =
+      selectedStudent.stay?.roomId ||
+      selectedStudent.roomId ||
+      selectedStudent.room?.id;
+    return catalog.data.rooms.filter((r) => {
+      if (r.status !== "ACTIVE" || r.building?.status !== "ACTIVE")
+        return false;
+      if (r.id === currentRoomId) return false;
+      if (r.vacant <= 0) return false;
+      const roomGender = r.roomType?.gender;
+      if (
+        roomGender &&
+        roomGender !== "ANY" &&
+        roomGender !== selectedStudent.gender
+      )
+        return false;
+      return true;
+    });
+  }, [catalog.data?.rooms, selectedStudent]);
+
+  const roomOptions = useMemo(() => {
+    return availableRooms.map((r) => ({
+      value: r.id,
+      label: `Phòng ${r.code} · ${r.building?.name || ""}`,
+      sublabel: `${r.roomType?.name || ""} · Còn ${r.vacant} chỗ trống · ${money(r.roomType?.fee || 0)}/tháng`,
+      badge: `Còn ${r.vacant} chỗ`,
+      code: r.code,
+    }));
+  }, [availableRooms]);
+
+  const selectedRoom = useMemo(() => {
+    return availableRooms.find((r) => r.id === roomId);
+  }, [availableRooms, roomId]);
+
+  const handleSelectStudent = (newId) => {
+    setStudentId(newId);
+    setRoomId(""); // Reset phòng mới khi đổi sinh viên
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!studentId) {
+      setError("Vui lòng chọn sinh viên cần chuyển phòng.");
+      return;
+    }
+    if (!roomId) {
+      setError("Vui lòng chọn phòng mới chuyển đến.");
+      return;
+    }
+    if (!transferDate) {
+      setError("Vui lòng nhập ngày chuyển phòng.");
+      return;
+    }
+    if (!reason.trim()) {
+      setError("Vui lòng nhập lý do chuyển phòng.");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Xác nhận chuyển sinh viên ${selectedStudent?.fullName} (${selectedStudent?.studentCode}) từ phòng ${selectedStudentRoom?.code || "cũ"} sang phòng ${selectedRoom?.code}?`,
+      )
+    ) {
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    try {
+      await api("/transfers", {
+        method: "POST",
+        body: {
+          studentId,
+          roomId,
+          date: transferDate,
+          reason: reason.trim(),
+        },
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err.message || "Không thể thực hiện chuyển phòng.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Chuyển phòng sinh viên" onClose={onClose}>
+      <form
+        onSubmit={handleSave}
+        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+      >
+        {/* Bước 1: Nhập mã sinh viên hoặc tên để hệ thống tự lọc dropdown */}
+        <div className="field">
+          <span>
+            Sinh viên đang ở KTX <em>*</em>
+          </span>
+          <SearchableSelect
+            name="studentId"
+            value={studentId}
+            onChange={handleSelectStudent}
+            options={studentOptions}
+            placeholder="Nhập mã sinh viên (MSSV), họ tên hoặc số phòng..."
+            emptyText="Không tìm thấy sinh viên đang ở phù hợp"
+          />
+        </div>
+
+        {/* Thẻ hiển thị tóm tắt thông tin sinh viên đã chọn */}
+        {selectedStudent && (
+          <div
+            style={{
+              padding: "12px 14px",
+              background: "#f0f7f9",
+              border: "1px solid #d4e7ec",
+              borderRadius: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "6px",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <strong style={{ color: "#1f3a46", fontSize: "14.5px" }}>
+                  {selectedStudent.fullName}
+                </strong>
+                <span className="badge">{selectedStudent.studentCode}</span>
+                <span className="badge badge-subtle">
+                  {selectedStudent.gender === "FEMALE" ? "Nữ" : "Nam"}
+                </span>
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "#486574",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "4px",
+                marginTop: "4px",
+              }}
+            >
+              <div>
+                <strong>Phòng hiện tại:</strong>{" "}
+                {selectedStudentRoom?.code || "—"}
+                {selectedStudentRoom?.building?.name
+                  ? ` (${selectedStudentRoom.building.name})`
+                  : ""}
+              </div>
+              <div>
+                <strong>Loại phòng:</strong>{" "}
+                {selectedStudentRoom?.roomType?.name || "—"}
+              </div>
+              {selectedStudent.phone && (
+                <div>
+                  <strong>SĐT:</strong> {selectedStudent.phone}
+                </div>
+              )}
+              {selectedStudent.email && (
+                <div>
+                  <strong>Email:</strong> {selectedStudent.email}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bước 2: Chọn phòng mới phù hợp giới tính */}
+        <div className="field">
+          <span>
+            Phòng mới chuyển đến <em>*</em>
+          </span>
+          {!selectedStudent ? (
+            <div
+              style={{
+                padding: "10px 12px",
+                background: "#fafbfb",
+                border: "1px dashed #cfdcde",
+                borderRadius: "8px",
+                color: "#8fa3ae",
+                fontSize: "13.5px",
+              }}
+            >
+              Vui lòng chọn sinh viên ở trên trước để hệ thống tự lọc danh sách
+              phòng phù hợp theo giới tính.
+            </div>
+          ) : availableRooms.length === 0 ? (
+            <div className="inline-error" style={{ margin: 0 }}>
+              Hiện không có phòng nào phù hợp giới tính (
+              {selectedStudent.gender === "FEMALE" ? "Nữ" : "Nam"}) còn chỗ
+              trống.
+            </div>
+          ) : (
+            <SearchableSelect
+              name="roomId"
+              value={roomId}
+              onChange={(newId) => setRoomId(newId)}
+              options={roomOptions}
+              placeholder="Nhập mã phòng hoặc tên tòa nhà (VD: A102, Tòa B)..."
+              emptyText="Không tìm thấy phòng phù hợp"
+            />
+          )}
+        </div>
+
+        {/* Thẻ hiển thị thông tin phòng mới đã chọn */}
+        {selectedRoom && (
+          <div
+            style={{
+              padding: "10px 14px",
+              background: "#f4fbf7",
+              border: "1px solid #ccebda",
+              borderRadius: "8px",
+              fontSize: "13px",
+              color: "#28533e",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "8px",
+            }}
+          >
+            <div>
+              <strong>Phòng {selectedRoom.code}</strong> ·{" "}
+              {selectedRoom.building?.name} · {selectedRoom.roomType?.name}
+            </div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <span className="badge badge-success">
+                Còn {selectedRoom.vacant} chỗ
+              </span>
+              <strong>{money(selectedRoom.roomType?.fee)}/tháng</strong>
+            </div>
+          </div>
+        )}
+
+        {/* Bước 3: Ngày chuyển */}
+        <div className="field">
+          <span>
+            Ngày chuyển <em>*</em>
+          </span>
+          <input
+            type="date"
+            required
+            value={transferDate}
+            onChange={(e) => setTransferDate(e.target.value)}
+          />
+        </div>
+
+        {/* Bước 4: Lý do chuyển */}
+        <div className="field">
+          <span>
+            Lý do chuyển phòng <em>*</em>
+          </span>
+          <textarea
+            required
+            rows={3}
+            placeholder="Nhập lý do điều chuyển (VD: Chuyển theo nguyện vọng ở cùng bạn cùng lớp, điều chỉnh sức chứa...)"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </div>
+
+        {error && (
+          <div className="inline-error" style={{ margin: 0 }}>
+            {error}
+          </div>
+        )}
+
+        <div className="modal-actions" style={{ marginTop: "10px" }}>
+          <button
+            type="button"
+            className="button button-ghost"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            className="button button-primary"
+            disabled={busy || !studentId || !roomId || !reason.trim()}
+          >
+            {busy ? "Đang xử lý..." : "Xác nhận chuyển phòng"}
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// Đây là ghi chú mẫu: Trang quản lý chuyển phòng của nhân viên KTX
 function TransfersPage() {
   const [page, setPage] = useState(1),
     [search, setSearch] = useState("");
@@ -2732,15 +4101,15 @@ function TransfersPage() {
     cat = useLoad("/catalog");
   const [show, setShow] = useState(false),
     [message, notice, clear] = useNotice();
-  const save = async (v) => {
-    if (!window.confirm("Xác nhận chuyển phòng cho sinh viên?")) return;
-    await api("/transfers", { method: "POST", body: v });
+
+  const handleTransferSuccess = () => {
     setShow(false);
     data.load();
     students.load();
     cat.load();
-    notice("Đã chuyển phòng và cập nhật số chỗ trống.");
+    notice("Đã chuyển phòng và cập nhật số chỗ trống thành công.");
   };
+
   return (
     <>
       <PageTitle
@@ -2800,47 +4169,12 @@ function TransfersPage() {
         )}
       </Section>
       {show && (
-        <Modal title="Chuyển phòng sinh viên" onClose={() => setShow(false)}>
-          <Form
-            fields={[
-              {
-                label: "Sinh viên đang ở",
-                name: "studentId",
-                required: true,
-                options:
-                  students.data?.items
-                    ?.filter((x) => x.stay)
-                    .map((x) => ({
-                      value: x.id,
-                      label: `${x.fullName} · ${x.studentCode}`,
-                    })) || [],
-              },
-              {
-                label: "Phòng mới",
-                name: "roomId",
-                required: true,
-                options:
-                  cat.data?.rooms
-                    ?.filter((x) => x.vacant > 0)
-                    .map((x) => ({
-                      value: x.id,
-                      label: `${x.code} · ${x.roomType?.name} · ${x.vacant} chỗ`,
-                    })) || [],
-              },
-              {
-                label: "Ngày chuyển",
-                name: "date",
-                type: "date",
-                required: true,
-              },
-              { label: "Lý do", name: "reason", rows: 3, required: true },
-            ]}
-            initial={{ date: new Date().toISOString().slice(0, 10) }}
-            onSave={save}
-            onCancel={() => setShow(false)}
-            submit="Xác nhận chuyển"
-          />
-        </Modal>
+        <TransferModal
+          onClose={() => setShow(false)}
+          onSuccess={handleTransferSuccess}
+          students={students}
+          catalog={cat}
+        />
       )}
       <Toast message={message} onClose={() => clear(null)} />
     </>
@@ -3001,11 +4335,18 @@ function ReadingsPage() {
                 label: "Phòng",
                 name: "roomId",
                 required: true,
+                searchable: true,
+                placeholder: "Nhập mã phòng để lọc (VD: A101, B202)...",
                 options:
-                  cat.data?.rooms?.map((x) => ({
-                    value: x.id,
-                    label: x.code,
-                  })) || [],
+                  cat.data?.rooms
+                    ?.filter((x) => x.status === "ACTIVE")
+                    ?.map((x) => ({
+                      value: x.id,
+                      label: `Phòng ${x.code}`,
+                      sublabel: `${x.building?.name || ""} · ${x.roomType?.name || ""}`,
+                      badge: x.building?.name || "",
+                      code: x.code,
+                    })) || [],
               },
               {
                 label: "Kỳ thu",
@@ -3071,9 +4412,10 @@ function BillingPage() {
   };
   useEffect(() => {
     if (!selected) return;
-    const refresh = () => api(`/billing/preview/${selected}`)
-      .then(setPreview)
-      .catch((error) => notice(error.message, "error"));
+    const refresh = () =>
+      api(`/billing/preview/${selected}`)
+        .then(setPreview)
+        .catch((error) => notice(error.message, "error"));
     window.addEventListener("work-queue-changed", refresh);
     return () => window.removeEventListener("work-queue-changed", refresh);
   }, [selected]);
@@ -3674,7 +5016,18 @@ const resourceConfig = {
     columns: [
       { key: "code", label: "Mã" },
       { key: "name", label: "Tên loại phòng" },
-      { key: "images", label: "Ảnh", render: (x) => coverOf(x) ? <img className="resource-photo" src={coverOf(x).url} alt={x.name}/> : <span className="resource-photo-empty"><ImagePlus size={17}/></span> },
+      {
+        key: "images",
+        label: "Ảnh",
+        render: (x) =>
+          coverOf(x) ? (
+            <img className="resource-photo" src={coverOf(x).url} alt={x.name} />
+          ) : (
+            <span className="resource-photo-empty">
+              <ImagePlus size={17} />
+            </span>
+          ),
+      },
       { key: "gender", label: "Giới tính", render: (x) => labels[x.gender] },
       { key: "defaultCapacity", label: "Sức chứa" },
       { key: "fee", label: "Phí / tháng", render: (x) => money(x.fee) },
@@ -3731,7 +5084,7 @@ function ResourcePage({ kind }) {
       method: targetId ? "PATCH" : "POST",
       body: v,
     });
-    if (kind !== 'room-types') setEdit(null);
+    if (kind !== "room-types") setEdit(null);
     data.load();
     notice(`Đã lưu ${config.singular}.`);
     return saved;
@@ -3792,9 +5145,25 @@ function ResourcePage({ kind }) {
         <Modal
           title={`${edit.id ? "Cập nhật" : "Thêm"} ${config.singular}`}
           onClose={() => setEdit(null)}
-          wide={kind === 'room-types'}
+          wide={kind === "room-types"}
         >
-          {kind === 'room-types' ? <RoomTypeEditor key={edit.id || 'new'} initial={edit} fields={config.fields} onSaveType={save} onChanged={data.load} onClose={()=>setEdit(null)}/> : <Form fields={config.fields} initial={edit} onSave={save} onCancel={() => setEdit(null)}/>}
+          {kind === "room-types" ? (
+            <RoomTypeEditor
+              key={edit.id || "new"}
+              initial={edit}
+              fields={config.fields}
+              onSaveType={save}
+              onChanged={data.load}
+              onClose={() => setEdit(null)}
+            />
+          ) : (
+            <Form
+              fields={config.fields}
+              initial={edit}
+              onSave={save}
+              onCancel={() => setEdit(null)}
+            />
+          )}
         </Modal>
       )}
       <Toast message={message} onClose={() => clear(null)} />
@@ -4005,87 +5374,346 @@ function PricingPage() {
     </>
   );
 }
-function StaffPage() {
-  const [page, setPage] = useState(1),
-    [search, setSearch] = useState(""),
-    [edit, setEdit] = useState(null),
-    [message, notice, clear] = useNotice();
-  const data = useLoad(
-    `/staff?page=${page}&search=${encodeURIComponent(search)}`,
-  );
-  const save = async (v) => {
-    if (v.password && v.password !== v.confirmPassword)
-      throw new Error("Mật khẩu xác nhận không khớp.");
-    await api(`/staff${edit?.id ? `/${edit.id}` : ""}`, {
-      method: edit?.id ? "PATCH" : "POST",
-      body: { staffCode: v.staffCode, fullName: v.fullName, phone: v.phone, email: v.email, password: v.password || undefined, role: v.role, active: v.active },
-    });
-    setEdit(null);
-    data.load();
-    notice("Đã cập nhật tài khoản nhân viên.");
+// ==============================================================================
+// PHÃ‚N Há»† QUáº¢N TRá»Š TÃ€I KHOáº¢N & NGÆ¯á»œI DÃ™NG TOÃ€N Há»† THá»NG (CHá»ˆ DÃ€NH CHO ADMIN)
+// ==============================================================================
+
+function UsersPage() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [roles, setRoles] = useState([]);
+  const toggleRole = (r) => {
+    setRoles((prev) =>
+      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r],
+    );
+    setPage(1);
   };
+  const [newModal, setNewModal] = useState(false);
+  const [pwdModal, setPwdModal] = useState(null);
+  const [statusModal, setStatusModal] = useState(null);
+  const [message, notice, clear] = useNotice();
+
+  const roleQuery = roles.length ? `&role=${roles.join(",")}` : "";
+  const data = useLoad(
+    `/users?page=${page}&search=${encodeURIComponent(search)}${roleQuery}`,
+    [page, search, roles],
+  );
+
+  const handleResetPassword = async (v) => {
+    if (!v.password || v.password.length < 8)
+      throw new Error("Mật khẩu mới cần ít nhất 8 ký tự.");
+    if (v.password !== v.confirmPassword)
+      throw new Error("Mật khẩu xác nhận không khớp.");
+    await api(`/users/${pwdModal.id}/password`, {
+      method: "PATCH",
+      body: { password: v.password },
+    });
+    setPwdModal(null);
+    notice(`Đã đổi mật khẩu cho tài khoản ${pwdModal.email} thành công.`);
+  };
+
+  const handleToggleStatus = async () => {
+    const nextActive = !statusModal.active;
+    await api(`/users/${statusModal.id}/status`, {
+      method: "PATCH",
+      body: { active: nextActive },
+    });
+    setStatusModal(null);
+    data.load();
+    notice(
+      nextActive
+        ? `Đã kích hoạt tài khoản ${statusModal.email}.`
+        : `Đã khóa tài khoản ${statusModal.email}.`,
+    );
+  };
+
+  const handleCreateUser = async (v) => {
+    if (v.password !== v.confirmPassword)
+      throw new Error("Mật khẩu xác nhận không khớp.");
+    await api("/users", {
+      method: "POST",
+      body: v,
+    });
+    setNewModal(false);
+    data.load();
+    notice("Đã tạo tài khoản mới thành công.");
+  };
+
   return (
     <>
       <PageTitle
-        kicker="QUẢN TRỊ TÀI KHOẢN"
-        title="Nhân viên & phân quyền"
-        description="Tạo nhân viên, cập nhật vai trò và trạng thái tài khoản."
+        kicker="QUẢN TRỊ HỆ THỐNG"
+        title="Quản lý tài khoản & mật khẩu"
+        description="Xem danh sách, đặt lại mật khẩu và phân quyền toàn bộ tài khoản Sinh viên, Nhân viên, Quản trị viên."
         action={
           <button
             className="button button-primary"
-            onClick={() => setEdit({ role: "STAFF", active: true })}
+            onClick={() => setNewModal(true)}
           >
             <Plus size={17} />
-            Thêm nhân viên
+            Thêm tài khoản
           </button>
         }
       />
-      <Section title="Danh sách tài khoản">
-        <SearchBar
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setPage(1);
+
+      <Section title="Danh sách tài khoản hệ thống">
+        {/* Đây là ghi chú mẫu: Khung tìm kiếm và bộ lọc vai trò to, thiết kế ngang hàng, rõ ràng cho Quản trị viên */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: "16px",
+            alignItems: "center",
+            marginBottom: "20px",
           }}
-        />
+        >
+          <div style={{ minWidth: 0 }}>
+            <div className="search-bar" style={{ marginBottom: 0 }}>
+              <div className="search-input">
+                <Search size={18} />
+                <input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Tìm theo email, họ tên, MSSV, mã NV..."
+                  style={{
+                    height: "46px",
+                    fontSize: "14px",
+                    borderRadius: "10px",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              background: "var(--surface)",
+              height: "46px",
+              padding: "0 18px",
+              borderRadius: "10px",
+              border: "1.5px solid var(--border)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "13.5px",
+                fontWeight: 700,
+                color: "var(--text)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Lọc vai trò:
+            </span>
+            <label
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13.5px",
+                fontWeight: 600,
+                cursor: "pointer",
+                userSelect: "none",
+                color: "var(--text)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={roles.includes("STUDENT")}
+                onChange={() => toggleRole("STUDENT")}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#222222",
+                }}
+              />
+              Sinh viên
+            </label>
+            <label
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13.5px",
+                fontWeight: 600,
+                cursor: "pointer",
+                userSelect: "none",
+                color: "var(--text)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={roles.includes("STAFF")}
+                onChange={() => toggleRole("STAFF")}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#222222",
+                }}
+              />
+              Nhân viên
+            </label>
+            <label
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13.5px",
+                fontWeight: 600,
+                cursor: "pointer",
+                userSelect: "none",
+                color: "var(--text)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={roles.includes("ADMIN")}
+                onChange={() => toggleRole("ADMIN")}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#222222",
+                }}
+              />
+              Admin
+            </label>
+            {roles.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setRoles([]);
+                  setPage(1);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#dc2626",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: "0 4px",
+                  marginLeft: "4px",
+                }}
+              >
+                ✕ Đặt lại
+              </button>
+            )}
+          </div>
+        </div>
+
         {data.data?.items?.length ? (
           <>
             <Table
               items={data.data.items}
               columns={[
-                { key: "staffCode", label: "Mã nhân viên" },
-                { key: "fullName", label: "Họ tên" },
-                { key: "user", label: "Email", render: (x) => <span className="staff-email">{x.user?.email}</span> },
+                {
+                  key: "code",
+                  label: "Mã định danh",
+                  render: (x) => <strong>{x.code}</strong>,
+                },
+                { key: "fullName", label: "Họ và tên" },
+                {
+                  key: "email",
+                  label: "Email đăng nhập",
+                  render: (x) => (
+                    <span className="staff-email">{x.email}</span>
+                  ),
+                },
                 {
                   key: "role",
                   label: "Vai trò",
-                  render: (x) => badge(x.user?.role),
+                  render: (x) => {
+                    const rMap = {
+                      ADMIN: { text: "Quản trị viên", color: "#6366f1" },
+                      STAFF: { text: "Nhân viên", color: "#2563eb" },
+                      STUDENT: { text: "Sinh viên", color: "#8b5cf6" },
+                    };
+                    const item = rMap[x.role] || { text: x.role, color: "var(--muted)" };
+                    return (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: "var(--text)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "6px",
+                            height: "6px",
+                            borderRadius: "50%",
+                            background: item.color,
+                          }}
+                        />
+                        {item.text}
+                      </span>
+                    );
+                  },
                 },
                 {
                   key: "active",
                   label: "Trạng thái",
-                  render: (x) =>
-                    x.user?.active ? badge("ACTIVE") : badge("INACTIVE"),
+                  render: (x) => (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        color: x.active ? "#16a34a" : "#dc2626",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          borderRadius: "50%",
+                          background: x.active ? "#16a34a" : "#dc2626",
+                        }}
+                      />
+                      {x.active ? "Đang hoạt động" : "Đã khóa"}
+                    </span>
+                  ),
                 },
                 {
-                  key: "edit",
-                  label: "",
+                  key: "actions",
+                  label: "Thao tác",
                   render: (x) => (
-                    <button
-                      className="table-action"
-                      onClick={() =>
-                        setEdit({
-                          ...x,
-                          email: x.user?.email || "",
-                          password: "",
-                          confirmPassword: "",
-                          role: x.user?.role,
-                          active: String(x.user?.active),
-                        })
-                      }
-                    >
-                      Chỉnh sửa
-                    </button>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        className="button button-secondary button-small"
+                        onClick={() => setPwdModal(x)}
+                        style={{ fontSize: "12px", padding: "4px 10px" }}
+                      >
+                        Đổi mật khẩu
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-secondary button-small"
+                        onClick={() => setStatusModal(x)}
+                        style={{
+                          fontSize: "12px",
+                          padding: "4px 10px",
+                          color: x.active ? "#dc2626" : "#16a34a",
+                        }}
+                      >
+                        {x.active ? "Khóa" : "Kích hoạt"}
+                      </button>
+                    </div>
                   ),
                 },
               ]}
@@ -4093,65 +5721,135 @@ function StaffPage() {
             <Pager data={data.data} page={page} setPage={setPage} />
           </>
         ) : (
-          <Empty icon={Users} />
+          <Empty title="Không tìm thấy tài khoản nào phù hợp" />
         )}
       </Section>
-      {edit && (
+
+      {/* Modal Đổi mật khẩu */}
+      {pwdModal && (
         <Modal
-          title={edit.id ? "Cập nhật nhân viên" : "Thêm nhân viên"}
-          onClose={() => setEdit(null)}
+          title={`Đặt lại mật khẩu cho ${pwdModal.fullName}`}
+          onClose={() => setPwdModal(null)}
         >
           <Form
-            className="staff-edit-form"
-            fields={(values) => [
-              ...(!edit.id
-                ? [
-                    {
-                      label: "Mã nhân viên",
-                      name: "staffCode",
-                      required: true,
-                    },
-                  ]
-                : []),
-              { label: "Email", name: "email", type: "email", required: true, autoComplete: "off" },
-              { label: edit.id ? "Mật khẩu mới" : "Mật khẩu", name: "password", type: "password", required: !edit.id, minLength: 8, maxLength: 72, autoComplete: "new-password", hint: edit.id ? "Tối thiểu 8 ký tự. Để trống nếu giữ mật khẩu hiện tại." : "Tối thiểu 8 ký tự." },
-              ...((!edit.id || values.password) ? [{ label: "Xác nhận mật khẩu", name: "confirmPassword", type: "password", required: true, minLength: 8, maxLength: 72, autoComplete: "new-password" }] : []),
-              { label: "Họ tên", name: "fullName", required: true },
-              { label: "Số điện thoại", name: "phone" },
+            fields={() => [
               {
-                label: "Vai trò",
-                name: "role",
+                label: "Mật khẩu mới",
+                name: "password",
+                type: "password",
                 required: true,
-                options: [
-                  { value: "STAFF", label: "Nhân viên" },
-                  { value: "ADMIN", label: "Quản trị viên" },
-                ],
+                minLength: 8,
+                hint: "Tối thiểu 8 ký tự.",
               },
-              ...(edit.id
-                ? [
-                    {
-                      label: "Trạng thái",
-                      name: "active",
-                      options: [
-                        { value: "true", label: "Hoạt động" },
-                        { value: "false", label: "Khóa" },
-                      ],
-                    },
-                  ]
-                : []),
+              {
+                label: "Xác nhận mật khẩu",
+                name: "confirmPassword",
+                type: "password",
+                required: true,
+                minLength: 8,
+              },
             ]}
-            initial={edit}
-            onSave={(v) =>
-              save({ ...v, active: v.active === "true" || v.active === true })
-            }
-            onCancel={() => setEdit(null)}
+            onSave={handleResetPassword}
+            onCancel={() => setPwdModal(null)}
           />
         </Modal>
       )}
+
+      {/* Modal Khóa / Mở khóa tài khoản */}
+      {statusModal && (
+        <Confirm
+          title={statusModal.active ? "Khóa tài khoản" : "Kích hoạt lại tài khoản"}
+          detail={`Bạn có chắc chắn muốn ${statusModal.active ? "khóa" : "kích hoạt lại"} tài khoản ${statusModal.fullName} (${statusModal.email}) không?`}
+          onConfirm={handleToggleStatus}
+          onClose={() => setStatusModal(null)}
+        />
+      )}
+
+      {/* Modal Thêm tài khoản mới */}
+      {newModal && (
+        <Modal
+          title="Thêm tài khoản người dùng mới"
+          onClose={() => setNewModal(false)}
+        >
+          <Form
+            fields={(values) => [
+              {
+                label: "Vai trò người dùng",
+                name: "role",
+                required: true,
+                options: [
+                  { value: "STUDENT", label: "Sinh viên" },
+                  { value: "STAFF", label: "Nhân viên KTX" },
+                  { value: "ADMIN", label: "Quản trị viên" },
+                ],
+              },
+              {
+                label: "Mã định danh (MSSV hoặc Mã NV)",
+                name: "code",
+                required: true,
+              },
+              { label: "Họ và tên", name: "fullName", required: true },
+              {
+                label: "Email đăng nhập",
+                name: "email",
+                type: "email",
+                required: true,
+              },
+              {
+                label: "Mật khẩu",
+                name: "password",
+                type: "password",
+                required: true,
+                minLength: 8,
+                maxLength: 72,
+                hint: "Tối thiểu 8 ký tự.",
+              },
+              {
+                label: "Xác nhận mật khẩu",
+                name: "confirmPassword",
+                type: "password",
+                required: true,
+                minLength: 8,
+                maxLength: 72,
+              },
+              { label: "Số điện thoại", name: "phone" },
+              ...(values.role === "STUDENT"
+                ? [
+                    {
+                      label: "Giới tính",
+                      name: "gender",
+                      options: [
+                        { value: "MALE", label: "Nam" },
+                        { value: "FEMALE", label: "Nữ" },
+                      ],
+                    },
+                    { label: "Khoa", name: "faculty" },
+                    { label: "Khóa học", name: "course" },
+                  ]
+                : []),
+            ]}
+            initial={{
+              role: "STUDENT",
+              gender: "MALE",
+              faculty: "Công nghệ thông tin",
+              course: "K21",
+            }}
+            onSave={handleCreateUser}
+            onCancel={() => setNewModal(false)}
+          />
+        </Modal>
+      )}
+
       <Toast message={message} onClose={() => clear(null)} />
     </>
   );
 }
+
+// Giữ lại alias StaffPage để tương thích các tham chiếu cũ
+function StaffPage() {
+  return <UsersPage />;
+}
+
 function ReportPage() {
   const cat = useLoad("/catalog"),
     periods = useLoad("/periods?limit=100"),
@@ -4305,7 +6003,11 @@ function NotificationsPage() {
                 key={x.id}
                 onClick={async () => {
                   await read(x);
-                  if (x.targetPath?.startsWith("/") && !x.targetPath.startsWith("//")) navigate(x.targetPath);
+                  if (
+                    x.targetPath?.startsWith("/") &&
+                    !x.targetPath.startsWith("//")
+                  )
+                    navigate(x.targetPath);
                 }}
               >
                 <span className="notification-icon">
@@ -4581,12 +6283,11 @@ export default function App() {
             </Guard>
           }
         />
-        <Route path="/contact" element={<Guard roles={["STUDENT"]}><ContactPage /></Guard>} />
         <Route
-          path="/wireframe"
+          path="/contact"
           element={
-            <Guard roles={["ADMIN"]} plain>
-              <WireframePage />
+            <Guard roles={["STUDENT"]}>
+              <ContactPage />
             </Guard>
           }
         />

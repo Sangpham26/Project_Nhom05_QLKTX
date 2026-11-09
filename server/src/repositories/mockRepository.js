@@ -15,16 +15,22 @@ class MockRepository {
   }
   select(state, collections) {
     if (!collections) return state;
-    if (!Array.isArray(collections) || collections.some(name => !Array.isArray(state[name])))
-      throw new Error('Invalid repository collection scope.');
-    return Object.fromEntries(collections.map(name => [name, state[name]]));
+    if (
+      !Array.isArray(collections) ||
+      collections.some((name) => !Array.isArray(state[name]))
+    )
+      throw new Error("Invalid repository collection scope.");
+    return Object.fromEntries(collections.map((name) => [name, state[name]]));
   }
   async read(collections) {
     await this.queue;
     return this.select(this.readFile(), collections);
   }
   transaction(collections, fn) {
-    if (typeof collections === 'function') { fn = collections; collections = undefined; }
+    if (typeof collections === "function") {
+      fn = collections;
+      collections = undefined;
+    }
     const run = async () => {
       const state = this.readFile();
       const result = await fn(this.select(state, collections));

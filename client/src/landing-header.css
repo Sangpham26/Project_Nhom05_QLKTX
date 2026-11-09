@@ -24,7 +24,8 @@
 .lp-header.is-scrolled { background: #fffffff5; border-color: var(--lp-line); box-shadow: 0 8px 28px #102a560a; backdrop-filter: blur(12px); }
 .lp-nav { display: flex; align-items: center; height: 100%; gap: 30px; }
 .lp-brand { display: inline-flex; align-items: center; gap: 11px; flex: 0 0 auto; }
-.lp-brand-symbol { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 11px; background: var(--lp-navy); color: #fff; }
+.lp-brand-symbol { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; background: transparent; }
+.lp-brand-logo { width: 100%; height: 100%; object-fit: contain; display: block; }
 .lp-brand > span:last-child { display: grid; gap: 1px; }
 .lp-brand strong { color: var(--lp-navy); font-size: 17px; line-height: 1.1; letter-spacing: -.04em; }
 .lp-brand small { color: var(--lp-muted); font-size: var(--font-2xs); font-weight: 800; letter-spacing: .13em; }

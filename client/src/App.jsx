@@ -852,8 +852,8 @@ const navStaff = [
   { to: "/requests", label: "Yêu cầu lưu trú", icon: FileText },
   { to: "/transfers", label: "Chuyển phòng", icon: DoorOpen },
   { to: "/readings", label: "Chỉ số điện nước", icon: Zap },
-  { to: "/billing", label: "Lập khoản thu", icon: CircleDollarSign },
-  { to: "/invoices", label: "Công nợ & thanh toán", icon: Wallet },
+  { to: "/billing", label: "Khoản thu", icon: CircleDollarSign },
+  { to: "/invoices", label: "Công nợ", icon: Wallet },
 ];
 // Đây là ghi chú mẫu: Sidebar của vai trò ADMIN chỉ gồm các mục quản trị hệ thống cốt lõi, không chứa menu của Staff
 const navAdmin = [

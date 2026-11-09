@@ -266,14 +266,14 @@ r.post(
 // Xem trước bảng tính hóa đơn dự kiến của kỳ thu
 r.get(
   "/billing/preview/:periodId",
-  staffOnly,
+  staffOrAdmin,
   send((req) => s.preview(req.params.periodId)),
 );
 
 // Nhân viên KTX chốt và phát hành hóa đơn chính thức cho cả kỳ
 r.post(
   "/billing/issue/:periodId",
-  staffOnly,
+  staffOrAdmin,
   send((req) => s.issue(req.user, req.params.periodId)),
 );
 

@@ -5,23 +5,117 @@ const repo = require("../repositories");
 // Each service loads only the collections it can read or change. The JSON provider
 // accepts the same scopes; the MongoDB provider uses them for focused queries.
 const scopes = {
-  catalog: ['buildings', 'roomTypes', 'rooms', 'stays'],
-  account: ['users', 'students', 'staff'],
-  catalogWrite: ['buildings', 'roomTypes', 'rooms', 'stays', 'periods', 'pricing'],
-  applicationView: ['applications', 'students', 'roomTypes', 'rooms', 'buildings', 'stays'],
-  applicationWrite: ['applications', 'students', 'roomTypes', 'rooms', 'buildings', 'stays', 'notifications', 'users'],
-  stays: ['stays', 'students', 'rooms', 'buildings', 'roomTypes'],
-  requests: ['requests', 'students', 'stays', 'rooms', 'notifications', 'users'],
-  transfer: ['transfers', 'students', 'stays', 'rooms', 'roomTypes', 'buildings', 'notifications'],
-  readings: ['readings', 'rooms', 'periods'],
-  billing: ['periods', 'pricing', 'rooms', 'stays', 'readings', 'roomTypes', 'students', 'invoices', 'notifications'],
-  invoices: ['invoices', 'payments', 'students', 'rooms', 'periods', 'staff'],
-  payment: ['invoices', 'payments', 'students', 'notifications'],
-  notifications: ['invoices', 'payments', 'students', 'notifications'],
-  staff: ['staff', 'users'],
-  students: ['students', 'stays', 'rooms', 'applications', 'requests', 'transfers'],
-  report: ['rooms', 'stays', 'invoices', 'payments', 'applications', 'requests', 'buildings'],
-  workQueue: ['applications', 'requests', 'invoices', 'payments', 'rooms', 'stays', 'periods', 'readings', 'pricing', 'roomTypes', 'students'],
+  catalog: ["buildings", "roomTypes", "rooms", "stays"],
+  account: ["users", "students", "staff", "activityLogs"],
+  catalogWrite: [
+    "buildings",
+    "roomTypes",
+    "rooms",
+    "stays",
+    "periods",
+    "pricing",
+  ],
+  applicationView: [
+    "applications",
+    "students",
+    "roomTypes",
+    "rooms",
+    "buildings",
+    "stays",
+  ],
+  applicationWrite: [
+    "applications",
+    "students",
+    "roomTypes",
+    "rooms",
+    "buildings",
+    "stays",
+    "notifications",
+    "users",
+    "staff",
+    "activityLogs",
+  ],
+  stays: ["stays", "students", "rooms", "buildings", "roomTypes"],
+  requests: [
+    "requests",
+    "students",
+    "stays",
+    "rooms",
+    "notifications",
+    "users",
+    "staff",
+    "activityLogs",
+  ],
+  transfer: [
+    "transfers",
+    "students",
+    "stays",
+    "rooms",
+    "roomTypes",
+    "buildings",
+    "notifications",
+    "staff",
+    "activityLogs",
+  ],
+  readings: ["readings", "rooms", "periods", "staff", "activityLogs"],
+  billing: [
+    "periods",
+    "pricing",
+    "rooms",
+    "stays",
+    "readings",
+    "roomTypes",
+    "students",
+    "invoices",
+    "notifications",
+    "staff",
+    "activityLogs",
+  ],
+  invoices: ["invoices", "payments", "students", "rooms", "periods", "staff"],
+  payment: [
+    "invoices",
+    "payments",
+    "students",
+    "notifications",
+    "rooms",
+    "staff",
+    "activityLogs",
+  ],
+  activityLogs: ["activityLogs"],
+  notifications: ["invoices", "payments", "students", "notifications"],
+  staff: ["staff", "users"],
+  students: [
+    "students",
+    "stays",
+    "rooms",
+    "roomTypes",
+    "buildings",
+    "applications",
+    "requests",
+    "transfers",
+  ],
+  report: [
+    "rooms",
+    "stays",
+    "invoices",
+    "payments",
+    "applications",
+    "requests",
+    "buildings",
+  ],
+  workQueue: [
+    "applications",
+    "requests",
+    "invoices",
+    "payments",
+    "rooms",
+    "stays",
+    "periods",
+    "readings",
+    "pricing",
+    "roomTypes",
+    "students",
+  ],
 };
 
 const id = () => crypto.randomUUID();
@@ -58,8 +152,12 @@ const validDuration = (value) => {
 };
 const endAfterMonths = (startDate, months) => {
   const start = new Date(`${validDate(startDate, "ngày bắt đầu")}T00:00:00Z`);
-  const target = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1));
-  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  const target = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1),
+  );
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
   target.setUTCDate(Math.min(start.getUTCDate(), lastDay));
   return target.toISOString().slice(0, 10);
 };
@@ -115,8 +213,14 @@ const preferredRoom = (db, roomTypeId, roomId) => {
   if (roomId === undefined || roomId === null || roomId === "") return null;
   const room = one(db, "rooms", roomId, "Phòng nguyện vọng");
   const building = one(db, "buildings", room.buildingId);
-  if (room.roomTypeId !== roomTypeId || room.status !== "ACTIVE" || building.status !== "ACTIVE")
-    fail("Phòng nguyện vọng không thuộc loại phòng đã chọn hoặc không còn hoạt động.");
+  if (
+    room.roomTypeId !== roomTypeId ||
+    room.status !== "ACTIVE" ||
+    building.status !== "ACTIVE"
+  )
+    fail(
+      "Phòng nguyện vọng không thuộc loại phòng đã chọn hoặc không còn hoạt động.",
+    );
   return room;
 };
 const notify = (db, userId, title, body, targetPath) =>
@@ -130,8 +234,30 @@ const notify = (db, userId, title, body, targetPath) =>
     read: false,
   });
 const notifyTeam = (db, title, body, targetPath) => {
-  for (const user of db.users.filter((item) => item.active && ["STAFF", "ADMIN"].includes(item.role)))
+  for (const user of db.users.filter(
+    (item) => item.active && ["STAFF", "ADMIN"].includes(item.role),
+  ))
     notify(db, user.id, title, body, targetPath);
+};
+// Ghi nhận sự kiện nhật ký hệ thống thời gian thực trực tiếp vào CSDL
+const logEvent = (db, { actorId, actorName, actorRole, action, title, body, target, tone }) => {
+  if (!db.activityLogs) db.activityLogs = [];
+  const timestamp = now();
+  const entry = {
+    id: id(),
+    actorId: actorId || null,
+    actorName: actorName || "Hệ thống",
+    actorRole: actorRole || "SYSTEM",
+    action: String(action || "THAO TÁC"),
+    title: String(title || "Hoạt động hệ thống"),
+    body: String(body || ""),
+    target: String(target || "Hệ thống"),
+    tone: tone || "blue",
+    time: timestamp,
+    createdAt: timestamp,
+  };
+  db.activityLogs.unshift(entry);
+  return entry;
 };
 const publicUser = (u) => ({
   id: u.id,
@@ -183,6 +309,7 @@ const list = (items, q = {}) => {
     (x) =>
       (!query || JSON.stringify(x).toLocaleLowerCase("vi").includes(query)) &&
       (!q.status || x.status === q.status) &&
+      (!q.role || (q.role.includes(",") ? q.role.split(",").map(r => r.trim()).includes(x.role) : x.role === q.role)) &&
       (!q.periodId || x.periodId === q.periodId) &&
       (!q.roomId || x.roomId === q.roomId || x.room?.id === q.roomId) &&
       (!q.buildingId ||
@@ -378,9 +505,9 @@ async function catalogWrite(kind, body, targetId) {
     const existing = targetId ? one(db, kind, targetId) : null;
     const cleanBody = { ...body };
     delete cleanBody.id;
-    if (kind === 'roomTypes') delete cleanBody.images;
+    if (kind === "roomTypes") delete cleanBody.images;
     const value = { ...(existing || {}), ...cleanBody };
-    if (kind === 'roomTypes' && !existing) value.images = [];
+    if (kind === "roomTypes" && !existing) value.images = [];
     validateCatalog(db, kind, value, existing);
     if (!existing) {
       value.id = id();
@@ -443,8 +570,10 @@ async function apply(user, body) {
     validDate(body.startDate, "ngày bắt đầu");
     required(body.contact, "thông tin liên hệ");
     const wish = preferredRoom(db, type.id, body.preferredRoomId);
-    const durationMonths = body.durationMonths === undefined || body.durationMonths === ""
-      ? null : validDuration(body.durationMonths);
+    const durationMonths =
+      body.durationMonths === undefined || body.durationMonths === ""
+        ? null
+        : validDuration(body.durationMonths);
     if (
       activeStay(db, profile.id) ||
       db.applications.some(
@@ -467,7 +596,22 @@ async function apply(user, body) {
       createdAt: now(),
     };
     db.applications.push(item);
-    notifyTeam(db, "Hồ sơ đăng ký mới", `${profile.fullName} đã gửi nguyện vọng${wish ? ` phòng ${wish.code}` : ` loại phòng ${type.name}`}.`, `/applications/${item.id}`);
+    notifyTeam(
+      db,
+      "Hồ sơ đăng ký mới",
+      `${profile.fullName} đã gửi nguyện vọng${wish ? ` phòng ${wish.code}` : ` loại phòng ${type.name}`}.`,
+      `/applications/${item.id}`,
+    );
+    logEvent(db, {
+      actorId: user.id,
+      actorName: profile.fullName || "Sinh viên",
+      actorRole: "STUDENT",
+      action: "NỘP HỒ SƠ NỘI TRÚ",
+      title: `SV ${profile.fullName} (${profile.studentCode || "—"}) đã nộp hồ sơ ký túc xá`,
+      body: `Đăng ký nguyện vọng ${type.name}${wish ? ` (Phòng ưu tiên: ${wish.code})` : ""}, thời hạn ${durationMonths || 6} tháng.`,
+      target: `MSSV: ${profile.studentCode || "—"}`,
+      tone: "blue",
+    });
     return item;
   });
 }
@@ -505,7 +649,12 @@ async function applicationUpdate(user, targetId, body) {
     if (body.note !== undefined) app.note = String(body.note);
     app.status = "PENDING";
     app.updatedAt = now();
-    notifyTeam(db, "Hồ sơ đã bổ sung", `${profile.fullName} đã bổ sung hồ sơ và đang chờ xét duyệt.`, `/applications/${app.id}`);
+    notifyTeam(
+      db,
+      "Hồ sơ đã bổ sung",
+      `${profile.fullName} đã bổ sung hồ sơ và đang chờ xét duyệt.`,
+      `/applications/${app.id}`,
+    );
     return app;
   });
 }
@@ -519,20 +668,49 @@ async function applicationAction(user, targetId, action, body) {
       app.reviewNote = body.note || "";
       if (body.needsInfo) {
         const owner = one(db, "students", app.studentId);
-        notify(db, owner.userId, "Cần bổ sung hồ sơ", app.reviewNote || "Vui lòng mở hồ sơ để bổ sung thông tin.", `/applications/${app.id}`);
+        notify(
+          db,
+          owner.userId,
+          "Cần bổ sung hồ sơ",
+          app.reviewNote || "Vui lòng mở hồ sơ để bổ sung thông tin.",
+          `/applications/${app.id}`,
+        );
+        const staffMember = db.staff?.find((s) => s.userId === user.id);
+        logEvent(db, {
+          actorId: user.id,
+          actorName: staffMember?.fullName || "Nhân viên KTX",
+          actorRole: user.role || "STAFF",
+          action: "YÊU CẦU BỔ SUNG HỒ SƠ",
+          title: `${staffMember?.fullName || "Nhân viên"} yêu cầu bổ sung hồ sơ`,
+          body: `Yêu cầu SV ${owner.fullName} (MSSV: ${owner.studentCode || "—"}) bổ sung thông tin: "${app.reviewNote || "Cập nhật hồ sơ"}".`,
+          target: `MSSV: ${owner.studentCode || "—"}`,
+          tone: "amber",
+        });
       }
     } else if (action === "reject") {
       app.rejectionReason = String(required(body.reason, "lý do từ chối"));
       app.status = "REJECTED";
       app.handledBy = user.id;
       app.handledAt = now();
+      const owner = db.students.find((x) => x.id === app.studentId);
       notify(
         db,
-        db.students.find((x) => x.id === app.studentId).userId,
+        owner.userId,
         "Hồ sơ bị từ chối",
         app.rejectionReason,
         `/applications/${app.id}`,
       );
+      const staffMember = db.staff?.find((s) => s.userId === user.id);
+      logEvent(db, {
+        actorId: user.id,
+        actorName: staffMember?.fullName || "Nhân viên KTX",
+        actorRole: user.role || "STAFF",
+        action: "TỪ CHỐI HỒ SƠ",
+        title: `${staffMember?.fullName || "Nhân viên"} đã từ chối hồ sơ nội trú`,
+        body: `Từ chối hồ sơ đăng ký của sinh viên ${owner?.fullName || "Sinh viên"} (MSSV: ${owner?.studentCode || "—"}). Lý do: "${app.rejectionReason}".`,
+        target: owner ? `MSSV: ${owner.studentCode || "—"}` : "Hồ sơ",
+        tone: "rose",
+      });
     } else if (action === "approve") {
       const profile = one(db, "students", app.studentId);
       if (activeStay(db, profile.id))
@@ -540,7 +718,10 @@ async function applicationAction(user, targetId, action, body) {
       const room = one(db, "rooms", required(body.roomId, "phòng"));
       if (!roomAvailable(db, room, profile, app.roomTypeId))
         fail("Phòng không còn phù hợp hoặc đã đầy.");
-      const startDate = validDate(body.startDate || app.startDate, "ngày bắt đầu"),
+      const startDate = validDate(
+          body.startDate || app.startDate,
+          "ngày bắt đầu",
+        ),
         endDate = app.durationMonths
           ? endAfterMonths(startDate, validDuration(app.durationMonths))
           : validDate(body.endDate, "ngày kết thúc");
@@ -568,6 +749,17 @@ async function applicationAction(user, targetId, action, body) {
         `Bạn đã được bố trí phòng ${room.code}.`,
         `/applications/${app.id}`,
       );
+      const staffMember = db.staff?.find((s) => s.userId === user.id);
+      logEvent(db, {
+        actorId: user.id,
+        actorName: staffMember?.fullName || "Lê Thị Lan",
+        actorRole: user.role || "STAFF",
+        action: "DUYỆT HỒ SƠ NỘI TRÚ",
+        title: `${staffMember?.fullName || "Nhân viên"} đã phê duyệt hồ sơ nội trú`,
+        body: `Phê duyệt và bố trí phòng ${room.code} cho sinh viên ${profile.fullName} (MSSV: ${profile.studentCode || "—"}), thời hạn lưu trú ${app.durationMonths || 6} tháng.`,
+        target: `Phòng ${room.code}`,
+        tone: "green",
+      });
     } else fail("Thao tác không hợp lệ.");
     return app;
   });
@@ -636,7 +828,22 @@ async function requestStay(user, body) {
       createdAt: now(),
     };
     db.requests.push(item);
-    notifyTeam(db, "Yêu cầu lưu trú mới", `${profile.fullName} đã gửi yêu cầu ${body.type === "EXTEND" ? "gia hạn" : "trả phòng"}.`, "/requests");
+    notifyTeam(
+      db,
+      "Yêu cầu lưu trú mới",
+      `${profile.fullName} đã gửi yêu cầu ${body.type === "EXTEND" ? "gia hạn" : "trả phòng"}.`,
+      "/requests",
+    );
+    logEvent(db, {
+      actorId: user.id,
+      actorName: profile.fullName || "Sinh viên",
+      actorRole: "STUDENT",
+      action: body.type === "EXTEND" ? "YÊU CẦU GIA HẠN" : "YÊU CẦU TRẢ PHÒNG",
+      title: `SV ${profile.fullName} (${profile.studentCode || "—"}) gửi yêu cầu ${body.type === "EXTEND" ? "gia hạn lưu trú" : "trả phòng"}`,
+      body: `Lý do: "${item.reason}". Ngày mong muốn: ${item.desiredDate}.`,
+      target: `MSSV: ${profile.studentCode || "—"}`,
+      tone: "amber",
+    });
     return item;
   });
 }
@@ -660,15 +867,29 @@ async function decideRequest(user, targetId, body) {
     request.status = body.status;
     request.handledBy = user.id;
     request.handledAt = now();
+    const stu = one(db, "students", request.studentId);
     notify(
       db,
-      one(db, "students", request.studentId).userId,
+      stu.userId,
       "Yêu cầu lưu trú đã xử lý",
       body.status === "APPROVED"
         ? "Yêu cầu của bạn đã được duyệt."
         : `Yêu cầu bị từ chối: ${request.rejectionReason}`,
       "/requests",
     );
+    const staffMember = db.staff?.find((s) => s.userId === user.id);
+    logEvent(db, {
+      actorId: user.id,
+      actorName: staffMember?.fullName || "Lê Thị Lan",
+      actorRole: user.role || "STAFF",
+      action: body.status === "APPROVED" ? "DUYỆT YÊU CẦU LƯU TRÚ" : "TỪ CHỐI YÊU CẦU LƯU TRÚ",
+      title: `${staffMember?.fullName || "Nhân viên"} đã ${body.status === "APPROVED" ? "phê duyệt" : "từ chối"} yêu cầu ${request.type === "EXTEND" ? "gia hạn" : "trả phòng"}`,
+      body: body.status === "APPROVED"
+        ? `Phê duyệt yêu cầu ${request.type === "EXTEND" ? "gia hạn lưu trú" : "trả phòng"} của SV ${stu?.fullName || "Sinh viên"} (MSSV: ${stu?.studentCode || "—"}).`
+        : `Từ chối yêu cầu của SV ${stu?.fullName || "Sinh viên"} (MSSV: ${stu?.studentCode || "—"}). Lý do: "${request.rejectionReason}".`,
+      target: `MSSV: ${stu?.studentCode || "—"}`,
+      tone: body.status === "APPROVED" ? "green" : "rose",
+    });
     return request;
   });
 }
@@ -704,6 +925,7 @@ async function transfer(user, body) {
       date,
       reason: String(required(body.reason, "lý do")),
       handledBy: user.id,
+      createdAt: now(),
     };
     db.transfers.push(item);
     notify(
@@ -713,6 +935,18 @@ async function transfer(user, body) {
       `Phòng mới của bạn: ${room.code}.`,
       "/stays",
     );
+    const staffMember = db.staff?.find((s) => s.userId === user.id);
+    const fromRoom = db.rooms?.find((r) => r.id === originalRoomId);
+    logEvent(db, {
+      actorId: user.id,
+      actorName: staffMember?.fullName || "Lê Thị Lan",
+      actorRole: user.role || "STAFF",
+      action: "CHUYỂN PHÒNG SINH VIÊN",
+      title: `${staffMember?.fullName || "Nhân viên"} đã phê duyệt chuyển phòng`,
+      body: `Chuyển sinh viên ${profile.fullName} (${profile.studentCode || "—"}) từ phòng ${fromRoom?.code || "—"} sang phòng ${room.code}. Lý do: "${item.reason}".`,
+      target: `Phòng ${room.code}`,
+      tone: "purple",
+    });
     return item;
   });
 }
@@ -810,6 +1044,17 @@ async function readingCreate(user, body) {
       createdAt: now(),
     };
     db.readings.push(item);
+    const staffMember = db.staff?.find((s) => s.userId === user.id);
+    logEvent(db, {
+      actorId: user.id,
+      actorName: staffMember?.fullName || "Thầy Đỗ Thành Nam",
+      actorRole: user.role || "STAFF",
+      action: "GHI CHỈ SỐ ĐIỆN NƯỚC",
+      title: `${staffMember?.fullName || "Nhân viên"} đã ghi chỉ số phòng ${room.code}`,
+      body: `Chốt chỉ số ${item.type === "ELECTRICITY" ? "Điện" : "Nước"} từ ${start} đến ${end} (Sản lượng: ${item.usage}) cho kỳ ${period.month}.`,
+      target: `Phòng ${room.code}`,
+      tone: "slate",
+    });
     return item;
   });
 }
@@ -924,6 +1169,17 @@ async function issue(user, periodId) {
         `/invoices/${x.id}`,
       ),
     );
+    const staffMember = db.staff?.find((s) => s.userId === user.id);
+    logEvent(db, {
+      actorId: user.id,
+      actorName: staffMember?.fullName || "Lê Thị Lan",
+      actorRole: user.role || "STAFF",
+      action: "PHÁT HÀNH HÓA ĐƠN",
+      title: `${staffMember?.fullName || "Nhân viên"} đã phát hành hóa đơn kỳ ${result.period.month}`,
+      body: `Đã phát hành ${created.length} hóa đơn cho toàn bộ sinh viên lưu trú kỳ ${result.period.month}. Hạn nộp: ${result.period.dueDate}.`,
+      target: `Kỳ ${result.period.month}`,
+      tone: "amber",
+    });
     return created;
   });
 }
@@ -953,14 +1209,22 @@ async function paymentCreate(user, body) {
     if (amount > balance) fail("Số tiền thu vượt quá số dư hóa đơn.");
     if (!["CASH", "TRANSFER"].includes(body.method))
       fail("Phương thức thanh toán không hợp lệ.");
+    const pDate = validDate(body.date, "ngày thu");
+    const pId = id();
+    const receiptNo =
+      "PT-" +
+      pDate.replace(/-/g, "") +
+      "-" +
+      pId.replace(/[^0-9]/g, "").slice(-4).padStart(4, "0");
     const item = {
-      id: id(),
+      id: pId,
       invoiceId: invoice.id,
       amount,
-      date: validDate(body.date, "ngày thu"),
+      date: pDate,
       method: body.method,
       note: body.note || "",
       recordedBy: user.id,
+      receiptNumber: receiptNo,
       createdAt: now(),
     };
     db.payments.push(item);
@@ -971,16 +1235,36 @@ async function paymentCreate(user, body) {
       `Đã thu ${amount.toLocaleString("vi-VN")} ₫ cho hóa đơn.`,
       `/invoices/${invoice.id}`,
     );
+    const staffMember = db.staff?.find((s) => s.userId === user.id);
+    const stu = db.students?.find((s) => s.id === invoice.studentId);
+    const room = db.rooms?.find((r) => r.id === invoice.roomId);
+    logEvent(db, {
+      actorId: user.id,
+      actorName: staffMember?.fullName || "NV Thu ngân KTX",
+      actorRole: user.role || "STAFF",
+      action: "XÁC NHẬN THANH TOÁN",
+      title: `${staffMember?.fullName || "Nhân viên"} đã thu tiền phòng & điện nước`,
+      body: `Đã thu ${amount.toLocaleString("vi-VN")} đ (${body.method === "TRANSFER" ? "Chuyển khoản" : "Tiền mặt"}) từ SV ${stu?.fullName || "Sinh viên"} (MSSV: ${stu?.studentCode || "—"}), phòng ${room?.code || "—"}. Biên lai: ${receiptNo}.`,
+      target: room ? `Phòng ${room.code}` : "Thanh toán",
+      tone: "green",
+    });
     return item;
   });
 }
 function hasNewDueNotice(db) {
   return db.invoices.some((invoice) => {
     if (invoice.total <= paid(db, invoice.id)) return false;
-    const days = Math.ceil((new Date(`${invoice.dueDate}T00:00:00Z`) - new Date(`${today()}T00:00:00Z`)) / 86400000);
+    const days = Math.ceil(
+      (new Date(`${invoice.dueDate}T00:00:00Z`) -
+        new Date(`${today()}T00:00:00Z`)) /
+        86400000,
+    );
     const kind = days < 0 ? "OVERDUE" : days <= 3 ? "DUE" : null;
-    return kind && db.students.some((item) => item.id === invoice.studentId) &&
-      !db.notifications.some((item) => item.key === `${kind}:${invoice.id}`);
+    return (
+      kind &&
+      db.students.some((item) => item.id === invoice.studentId) &&
+      !db.notifications.some((item) => item.key === `${kind}:${invoice.id}`)
+    );
   });
 }
 async function notifications(user, q) {
@@ -1016,7 +1300,10 @@ async function notifications(user, q) {
   }
   const own = db.notifications.filter((x) => x.userId === user.id);
   return {
-    ...list(own.sort((a, b) => b.createdAt.localeCompare(a.createdAt)), q),
+    ...list(
+      own.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      q,
+    ),
     unreadCount: own.filter((x) => !x.read).length,
   };
 }
@@ -1028,6 +1315,176 @@ async function readNotification(user, targetId) {
     return item;
   });
 }
+// ==============================================================================
+// PHÂN HỆ QUẢN TRỊ TÀI KHOẢN VÀ NGƯỜI DÙNG DÀNH CHO ADMIN
+// ==============================================================================
+
+// Lấy danh sách toàn bộ tài khoản người dùng cho Quản trị viên (Admin User List)
+async function usersList(q) {
+  const db = await repo.read(scopes.account);
+  const items = db.users.map((u) => {
+    let profile = null;
+    let code = "—";
+    let fullName = "—";
+    let phone = "—";
+    if (u.role === "STUDENT") {
+      profile = db.students.find((s) => s.userId === u.id);
+      if (profile) {
+        code = profile.studentCode || "—";
+        fullName = profile.fullName || "—";
+        phone = profile.phone || "—";
+      }
+    } else {
+      profile = db.staff.find((s) => s.userId === u.id);
+      if (profile) {
+        code = profile.staffCode || "—";
+        fullName = profile.fullName || "—";
+        phone = profile.phone || "—";
+      }
+    }
+    return {
+      id: u.id,
+      email: u.email,
+      role: u.role,
+      active: u.active,
+      code,
+      fullName,
+      phone,
+      profile,
+    };
+  });
+  return list(items, q);
+}
+
+// Đặt lại mật khẩu tài khoản người dùng bất kỳ (Admin Reset Password)
+async function userResetPassword(targetUserId, newPassword) {
+  if (
+    typeof newPassword !== "string" ||
+    !newPassword.trim() ||
+    newPassword.length < 8
+  )
+    fail("Mật khẩu mới cần ít nhất 8 ký tự.");
+  if (Buffer.byteLength(newPassword, "utf8") > 72)
+    fail("Mật khẩu quá dài. Vui lòng dùng tối đa 72 byte.");
+  const passwordHash = bcrypt.hashSync(newPassword, 10);
+  return repo.transaction(scopes.account, (db) => {
+    const user = one(db, "users", targetUserId, "Tài khoản");
+    user.passwordHash = passwordHash;
+    logEvent(db, {
+      actorId: "u-admin-1",
+      actorName: "ThS. Nguyễn Hoàng Long",
+      actorRole: "ADMIN",
+      action: "ĐẶT LẠI MẬT KHẨU",
+      title: `Quản trị viên đã đặt lại mật khẩu cho tài khoản ${user.email}`,
+      body: `Đã cập nhật mật khẩu mới an toàn cho tài khoản (${user.role === "STUDENT" ? "Sinh viên" : user.role === "STAFF" ? "Nhân viên" : "Quản trị viên"}).`,
+      target: user.email,
+      tone: "purple",
+    });
+    return publicUser(user);
+  });
+}
+
+// Thay đổi trạng thái kích hoạt hoặc khóa tài khoản (Admin Toggle Status)
+async function userSetStatus(targetUserId, active) {
+  const isActive = Boolean(active);
+  return repo.transaction(scopes.account, (db) => {
+    const user = one(db, "users", targetUserId, "Tài khoản");
+    if (
+      !isActive &&
+      user.role === "ADMIN" &&
+      db.users.filter((x) => x.role === "ADMIN" && x.active).length <= 1
+    ) {
+      fail("Không thể khóa quản trị viên đang hoạt động duy nhất.");
+    }
+    user.active = isActive;
+    logEvent(db, {
+      actorId: "u-admin-1",
+      actorName: "ThS. Nguyễn Hoàng Long",
+      actorRole: "ADMIN",
+      action: isActive ? "KÍCH HOẠT TÀI KHOẢN" : "KHÓA TÀI KHOẢN",
+      title: `Quản trị viên đã ${isActive ? "kích hoạt" : "khóa"} tài khoản ${user.email}`,
+      body: `Chuyển trạng thái tài khoản sang: ${isActive ? "Đang hoạt động" : "Đã khóa"}.`,
+      target: user.email,
+      tone: isActive ? "green" : "rose",
+    });
+    return publicUser(user);
+  });
+}
+
+// Tạo tài khoản mới từ phía Quản trị viên (Admin Create User)
+async function userCreate(body) {
+  const email = String(required(body.email, "email")).trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(email)) fail("Email không hợp lệ.");
+  const role = required(body.role, "vai trò");
+  if (!["STUDENT", "STAFF", "ADMIN"].includes(role))
+    fail("Vai trò không hợp lệ.");
+  if (
+    typeof body.password !== "string" ||
+    !body.password.trim() ||
+    body.password.length < 8
+  )
+    fail("Mật khẩu cần ít nhất 8 ký tự.");
+  const passwordHash = bcrypt.hashSync(body.password, 10);
+
+  return repo.transaction(scopes.account, (db) => {
+    unique(db, "users", "email", email);
+    const userId = id();
+    const user = {
+      id: userId,
+      email,
+      passwordHash,
+      role,
+      active: true,
+    };
+    db.users.push(user);
+    logEvent(db, {
+      actorId: "u-admin-1",
+      actorName: "ThS. Nguyễn Hoàng Long",
+      actorRole: "ADMIN",
+      action: "TẠO TÀI KHOẢN",
+      title: `Quản trị viên tạo tài khoản mới ${email}`,
+      body: `Khởi tạo thành công tài khoản người dùng với vai trò ${role === "STUDENT" ? "Sinh viên" : role === "STAFF" ? "Nhân viên" : "Quản trị viên"}.`,
+      target: email,
+      tone: "blue",
+    });
+
+    if (role === "STUDENT") {
+      const studentCode = String(
+        required(body.code || body.studentCode, "mã sinh viên"),
+      ).trim();
+      unique(db, "students", "studentCode", studentCode);
+      const studentItem = {
+        id: id(),
+        userId,
+        studentCode,
+        fullName: String(required(body.fullName, "họ tên")),
+        gender: body.gender || "MALE",
+        faculty: body.faculty || "Chưa cập nhật",
+        course: body.course || "K21",
+        phone: body.phone || "",
+        address: body.address || "",
+        contact: body.phone || "",
+      };
+      db.students.push(studentItem);
+      return { ...studentItem, user: publicUser(user) };
+    } else {
+      const staffCode = String(
+        required(body.code || body.staffCode, "mã nhân viên"),
+      ).trim();
+      unique(db, "staff", "staffCode", staffCode);
+      const staffItem = {
+        id: id(),
+        userId,
+        staffCode,
+        fullName: String(required(body.fullName, "họ tên")),
+        phone: body.phone || "",
+      };
+      db.staff.push(staffItem);
+      return { ...staffItem, user: publicUser(user) };
+    }
+  });
+}
+
 async function staffList(q) {
   const db = await repo.read(scopes.staff);
   return list(
@@ -1040,13 +1497,20 @@ async function staffList(q) {
 }
 async function staffWrite(body, targetId) {
   // An empty password during editing preserves the existing hash.
-  const changePassword = !targetId || (body.password !== undefined && body.password !== "");
+  const changePassword =
+    !targetId || (body.password !== undefined && body.password !== "");
   let passwordHash;
   if (changePassword) {
-    if (typeof body.password !== "string" || !body.password.trim() || body.password.length < 8)
+    if (
+      typeof body.password !== "string" ||
+      !body.password.trim() ||
+      body.password.length < 8
+    )
       fail("Mật khẩu cần ít nhất 8 ký tự.");
     if (Buffer.byteLength(body.password, "utf8") > 72)
-      fail("Mật khẩu quá dài. Vui lòng dùng tối đa 72 byte (ký tự có dấu có thể chiếm nhiều byte).");
+      fail(
+        "Mật khẩu quá dài. Vui lòng dùng tối đa 72 byte (ký tự có dấu có thể chiếm nhiều byte).",
+      );
     passwordHash = bcrypt.hashSync(body.password, 10);
   }
   return repo.transaction(scopes.staff, (db) => {
@@ -1088,7 +1552,10 @@ async function staffWrite(body, targetId) {
     }
     if (changePassword) account.passwordHash = passwordHash;
     for (const field of ["fullName", "phone"])
-      if (body[field] !== undefined) item[field] = String(field === "fullName" ? required(body[field], "họ tên") : body[field]);
+      if (body[field] !== undefined)
+        item[field] = String(
+          field === "fullName" ? required(body[field], "họ tên") : body[field],
+        );
     if (body.role) {
       if (!["STAFF", "ADMIN"].includes(body.role))
         fail("Vai trò không hợp lệ.");
@@ -1112,16 +1579,22 @@ async function staffWrite(body, targetId) {
     return { ...item, user: publicUser(account) };
   });
 }
-const studentView = (db, x) => ({
-  ...x,
-  stay: activeStay(db, x.id),
-  room: db.rooms.find((r) => r.id === activeStay(db, x.id)?.roomId),
-  status: activeStay(db, x.id) ? "ACTIVE" : "INACTIVE",
-  applications: db.applications.filter((a) => a.studentId === x.id),
-  stays: db.stays.filter((s) => s.studentId === x.id),
-  requests: db.requests.filter((r) => r.studentId === x.id),
-  transfers: db.transfers.filter((t) => t.studentId === x.id),
-});
+// Đây là ghi chú mẫu: Định dạng dữ liệu sinh viên kèm thông tin lượt lưu trú và phòng ở đầy đủ chi tiết
+const studentView = (db, x) => {
+  const stay = activeStay(db, x.id);
+  const rawRoom = stay ? db.rooms.find((r) => r.id === stay.roomId) : null;
+  const room = rawRoom ? roomView(db, rawRoom) : null;
+  return {
+    ...x,
+    stay: stay ? { ...stay, room } : null,
+    room,
+    status: stay ? "ACTIVE" : "INACTIVE",
+    applications: db.applications.filter((a) => a.studentId === x.id),
+    stays: db.stays.filter((s) => s.studentId === x.id),
+    requests: db.requests.filter((r) => r.studentId === x.id),
+    transfers: db.transfers.filter((t) => t.studentId === x.id),
+  };
+};
 async function studentDetail(user, targetId) {
   const db = await repo.read(scopes.students);
   const profile = one(db, "students", targetId, "Sinh viên");
@@ -1188,29 +1661,82 @@ async function workQueue() {
   const currentPeriod = db.periods
     .filter((item) => item.status === "ACTIVE" && item.issueDate <= today())
     .sort((a, b) => b.month.localeCompare(a.month))[0];
-  const occupiedRooms = db.rooms.filter((room) => room.status === "ACTIVE" && occupants(db, room.id) > 0);
-  const missingReadings = currentPeriod ? occupiedRooms.filter((room) =>
-    ["ELECTRICITY", "WATER"].some((type) =>
-      !db.readings.some((item) => item.roomId === room.id && item.periodId === currentPeriod.id && item.type === type),
-    ),
-  ).length : 0;
-  const readyInvoices = currentPeriod && !missingReadings && db.pricing.length
-    ? billingPreview(db, currentPeriod.id).items.length : 0;
-  const version = crypto.createHash("sha256").update(JSON.stringify([
-    db.applications.map((item) => [item.id, item.status, item.updatedAt, item.handledAt]).sort((a, b) => a[0].localeCompare(b[0])),
-    db.requests.map((item) => [item.id, item.status, item.handledAt]).sort((a, b) => a[0].localeCompare(b[0])),
-    db.invoices.map((item) => [item.id, item.total, paid(db, item.id)]).sort((a, b) => a[0].localeCompare(b[0])),
-    db.readings.map((item) => [item.id, item.roomId, item.periodId, item.type]).sort((a, b) => a[0].localeCompare(b[0])),
-    db.stays.map((item) => [item.id, item.roomId, item.status]).sort((a, b) => a[0].localeCompare(b[0])),
-    currentPeriod?.id,
-  ])).digest("hex");
+  const occupiedRooms = db.rooms.filter(
+    (room) => room.status === "ACTIVE" && occupants(db, room.id) > 0,
+  );
+  const missingReadings = currentPeriod
+    ? occupiedRooms.filter((room) =>
+        ["ELECTRICITY", "WATER"].some(
+          (type) =>
+            !db.readings.some(
+              (item) =>
+                item.roomId === room.id &&
+                item.periodId === currentPeriod.id &&
+                item.type === type,
+            ),
+        ),
+      ).length
+    : 0;
+  const readyInvoices =
+    currentPeriod && !missingReadings && db.pricing.length
+      ? billingPreview(db, currentPeriod.id).items.length
+      : 0;
+  const version = crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify([
+        db.applications
+          .map((item) => [item.id, item.status, item.updatedAt, item.handledAt])
+          .sort((a, b) => a[0].localeCompare(b[0])),
+        db.requests
+          .map((item) => [item.id, item.status, item.handledAt])
+          .sort((a, b) => a[0].localeCompare(b[0])),
+        db.invoices
+          .map((item) => [item.id, item.total, paid(db, item.id)])
+          .sort((a, b) => a[0].localeCompare(b[0])),
+        db.readings
+          .map((item) => [item.id, item.roomId, item.periodId, item.type])
+          .sort((a, b) => a[0].localeCompare(b[0])),
+        db.stays
+          .map((item) => [item.id, item.roomId, item.status])
+          .sort((a, b) => a[0].localeCompare(b[0])),
+        currentPeriod?.id,
+      ]),
+    )
+    .digest("hex");
   return {
-    applications: db.applications.filter((item) => ["PENDING", "REVIEWING", "NEEDS_INFO"].includes(item.status)).length,
+    applications: db.applications.filter((item) =>
+      ["PENDING", "REVIEWING", "NEEDS_INFO"].includes(item.status),
+    ).length,
     requests: db.requests.filter((item) => item.status === "PENDING").length,
-    invoices: db.invoices.filter((item) => item.total > paid(db, item.id)).length,
+    invoices: db.invoices.filter((item) => item.total > paid(db, item.id))
+      .length,
     readings: missingReadings,
     billing: readyInvoices,
     version,
+  };
+}
+
+
+// ==============================================================================
+// NHẬT KÝ HOẠT ĐỘNG HỆ THỐNG TOÀN DIỆN CỦA MỌI VAI TRÒ (ADMIN, STAFF, STUDENT)
+// Đọc trực tiếp từ tập hợp activityLogs lưu trữ bền vững trong CSDL
+// ==============================================================================
+async function activityLogs(user, q = {}) {
+  const db = await repo.read(scopes.activityLogs);
+  const items = (db.activityLogs || []).slice();
+
+  // Sắp xếp thời gian giảm dần theo giờ:phút:giây (mới nhất lên đầu tiên)
+  items.sort(
+    (a, b) =>
+      new Date(b.time || b.createdAt || 0) -
+      new Date(a.time || a.createdAt || 0),
+  );
+
+  const limit = Math.min(100, Math.max(1, Number(q.limit) || 20));
+  return {
+    items: items.slice(0, limit),
+    total: items.length,
   };
 }
 
@@ -1245,10 +1771,15 @@ module.exports = {
   paymentCreate,
   notifications,
   readNotification,
+  usersList,
+  userResetPassword,
+  userSetStatus,
+  userCreate,
   staffList,
   staffWrite,
   students,
   studentDetail,
   report,
   workQueue,
+  activityLogs,
 };

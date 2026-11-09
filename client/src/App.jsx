@@ -1275,26 +1275,13 @@ function AuthPage({ register = false }) {
           </div>    
         </Link>
         <div className="auth-content">
-          <span className="eyebrow">
-            {register ? "TÀI KHOẢN SINH VIÊN" : "QUẢN LÝ KÝ TÚC XÁ"}
-          </span>
-          <h1>{register ? "Tạo tài khoản sinh viên" : "Đăng nhập"}</h1>
-          <p>
-            {register
-              ? "Điền thông tin để bắt đầu đăng ký chỗ ở KTX."
-              : "Xem hồ sơ, thông tin lưu trú và hóa đơn của bạn."}
-          </p>
+          
+          <h1>{register ? "Tạo tài khoản" : "Đăng nhập"}</h1>
+          
           <form onSubmit={submit}>
             <div className="form-grid">
               {register && (
                 <>
-                  <Field
-                    label="Mã số sinh viên"
-                    name="studentCode"
-                    value={form.studentCode}
-                    onChange={change}
-                    required
-                  />
                   <Field
                     label="Họ và tên"
                     name="fullName"

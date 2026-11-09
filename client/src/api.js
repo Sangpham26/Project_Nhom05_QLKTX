@@ -20,8 +20,15 @@ export async function api(path, options = {}) {
     throw new Error("Không kết nối được máy chủ. Hãy kiểm tra backend.");
   }
   const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.success)
-    throw new Error(result.error || "Có lỗi xảy ra.");
+  if (!response.ok || !result.success) {
+    let msg = result.error || "Có lỗi xảy ra.";
+    if (typeof msg === "string") {
+      msg = msg.replace(/\bstudentCode\b/g, "Mã số sinh viên")
+               .replace(/\bstaffCode\b/g, "Mã nhân viên")
+               .replace(/(?<!Địa chỉ\s+)\bemail\b(?=\s+đã tồn tại)/gi, "Địa chỉ email");
+    }
+    throw new Error(msg);
+  }
   return result.data;
 }
 

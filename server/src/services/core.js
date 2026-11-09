@@ -170,15 +170,66 @@ const positive = (value, label, zero = false) => {
 const one = (db, collection, key, label = "Bản ghi") =>
   db[collection].find((x) => x.id === key) ||
   fail(`${label} không tồn tại.`, 404);
-const unique = (db, collection, field, value, except) => {
+
+const fieldLabels = {
+  studentCode: "Mã số sinh viên",
+  email: "Địa chỉ email",
+  staffCode: "Mã nhân viên",
+  phone: "Số điện thoại",
+  month: "Kỳ thu",
+};
+
+const collectionCodeLabels = {
+  buildings: "Mã tòa",
+  roomTypes: "Mã loại phòng",
+  rooms: "Mã phòng",
+};
+
+const unique = (db, collection, field, value, except, customLabel) => {
   if (
     db[collection].some(
       (x) =>
         x[field]?.toLowerCase?.() === String(value).toLowerCase() &&
         x.id !== except,
     )
-  )
-    fail(`${field} đã tồn tại.`);
+  ) {
+    const label =
+      customLabel ||
+      (field === "code" && collectionCodeLabels[collection]) ||
+      fieldLabels[field] ||
+      field;
+    fail(`${label} đã tồn tại trong hệ thống.`);
+  }
+};
+
+const generateStudentCode = (db) => {
+  let maxNum = 2110000;
+  for (const s of db.students || []) {
+    const code = String(s.studentCode || "");
+    const match = code.match(/\d+/);
+    if (match) {
+      const num = parseInt(match[0], 10);
+      if (num > maxNum && num < 9999999) {
+        maxNum = num;
+      }
+    }
+  }
+  let nextNum = maxNum + 1;
+  while (db.students.some((s) => s.studentCode === String(nextNum))) {
+    nextNum++;
+  }
+  return String(nextNum);
+};
+
+const nextSequentialId = (db, collection, prefix) => {
+  let max = 0;
+  for (const item of db[collection] || []) {
+    if (item.id && typeof item.id === "string" && item.id.startsWith(prefix)) {
+      const num = parseInt(item.id.slice(prefix.length), 10);
+      if (!isNaN(num) && num > max) max = num;
+    }
+  }
+  return `${prefix}${max + 1}`;
 };
 const student = (db, user) =>
   db.students.find((x) => x.userId === user.id) ||
@@ -340,29 +391,30 @@ async function register(body) {
     if (!/^\S+@\S+\.\S+$/.test(email)) fail("Email không hợp lệ.");
     if (String(required(body.password, "mật khẩu")).length < 8)
       fail("Mật khẩu cần ít nhất 8 ký tự.");
-    const studentCode = String(
-      required(body.studentCode, "mã sinh viên"),
-    ).trim();
+
+    // ID người dùng và mã sinh viên luôn được hệ thống tự động sinh từ CSDL, không cho người dùng tự sửa
+    const studentCode = generateStudentCode(db);
     unique(db, "users", "email", email);
     unique(db, "students", "studentCode", studentCode);
+
     const user = {
-      id: id(),
+      id: nextSequentialId(db, "users", "u-student-"),
       email,
       passwordHash: bcrypt.hashSync(body.password, 10),
       role: "STUDENT",
       active: true,
     };
     const profile = {
-      id: id(),
+      id: nextSequentialId(db, "students", "sv-"),
       userId: user.id,
       studentCode,
       fullName: String(required(body.fullName, "họ tên")).trim(),
       gender: required(body.gender, "giới tính"),
-      faculty: body.faculty || "",
-      course: body.course || "",
+      faculty: body.faculty || "Chưa cập nhật",
+      course: body.course || "K21",
       phone: body.phone || "",
       address: body.address || "",
-      contact: body.contact || "",
+      contact: body.phone || "",
     };
     if (!["MALE", "FEMALE", "OTHER"].includes(profile.gender))
       fail("Giới tính không hợp lệ.");
@@ -1428,7 +1480,12 @@ async function userCreate(body) {
 
   return repo.transaction(scopes.account, (db) => {
     unique(db, "users", "email", email);
-    const userId = id();
+    const userId =
+      role === "STUDENT"
+        ? nextSequentialId(db, "users", "u-student-")
+        : role === "STAFF"
+          ? nextSequentialId(db, "users", "u-staff-")
+          : id();
     const user = {
       id: userId,
       email,
@@ -1450,11 +1507,11 @@ async function userCreate(body) {
 
     if (role === "STUDENT") {
       const studentCode = String(
-        required(body.code || body.studentCode, "mã sinh viên"),
+        body.code || body.studentCode || generateStudentCode(db),
       ).trim();
       unique(db, "students", "studentCode", studentCode);
       const studentItem = {
-        id: id(),
+        id: nextSequentialId(db, "students", "sv-"),
         userId,
         studentCode,
         fullName: String(required(body.fullName, "họ tên")),

@@ -238,6 +238,26 @@ const activeStay = (db, studentId) =>
   db.stays.find((x) => x.studentId === studentId && x.status === "ACTIVE");
 const occupants = (db, roomId) =>
   db.stays.filter((x) => x.roomId === roomId && x.status === "ACTIVE").length;
+
+const getPeriodDateRange = (periodMonth) => {
+  const [year, month] = periodMonth.split("-").map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const periodStart = `${periodMonth}-01`;
+  const periodEnd = `${periodMonth}-${String(daysInMonth).padStart(2, "0")}`;
+  return { periodStart, periodEnd, daysInMonth };
+};
+
+const stayDaysInPeriod = (stay, periodStart, periodEnd, daysInMonth) => {
+  if (stay.status !== "ACTIVE") return 0;
+  const stayEnd = stay.actualEndDate || stay.plannedEndDate || "9999-12-31";
+  if (stay.startDate > periodEnd || stayEnd < periodStart) return 0;
+  const start = stay.startDate > periodStart ? stay.startDate : periodStart;
+  const end = stayEnd < periodEnd ? stayEnd : periodEnd;
+  const dStart = new Date(start + "T00:00:00Z");
+  const dEnd = new Date(end + "T00:00:00Z");
+  const diffDays = Math.round((dEnd - dStart) / 86400000) + 1;
+  return Math.max(0, Math.min(daysInMonth, diffDays));
+};
 const roomView = (db, room) => ({
   ...room,
   occupied: occupants(db, room.id),
@@ -1118,13 +1138,28 @@ function billingPreview(db, periodId) {
       .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] ||
     db.pricing.at(-1);
   if (!pricing) fail("Chưa có đơn giá.");
+  const { periodStart, periodEnd, daysInMonth } = getPeriodDateRange(period.month);
   const missing = [],
     items = [];
   for (const room of db.rooms) {
-    const residents = db.stays
-      .filter((x) => x.roomId === room.id && x.status === "ACTIVE")
-      .sort((a, b) => a.studentId.localeCompare(b.studentId));
-    if (!residents.length) continue;
+    if (room.status !== "ACTIVE") continue;
+
+    const eligibleStays = [];
+    for (const stay of db.stays) {
+      if (stay.roomId !== room.id) continue;
+      const days = stayDaysInPeriod(stay, periodStart, periodEnd, daysInMonth);
+      if (days <= 0) continue;
+      const start = stay.startDate > periodStart ? stay.startDate : periodStart;
+      const end =
+        (stay.actualEndDate || stay.plannedEndDate || "9999-12-31") < periodEnd
+          ? stay.actualEndDate || stay.plannedEndDate
+          : periodEnd;
+      eligibleStays.push({ stay, daysStayed: days, start, end });
+    }
+
+    if (!eligibleStays.length) continue;
+    eligibleStays.sort((a, b) => a.stay.studentId.localeCompare(b.stay.studentId));
+
     const electric = db.readings.find(
       (x) =>
         x.roomId === room.id &&
@@ -1144,35 +1179,64 @@ function billingPreview(db, periodId) {
       continue;
     }
     const type = one(db, "roomTypes", room.roomTypeId);
-    const base = money(electric.usage * pricing.electricity),
-      waterBase = money(water.usage * pricing.water),
-      count = residents.length;
-    const electricityParts = Array.from(
-      { length: count },
-      (_, i) => Math.floor(base / count) + (i < base % count ? 1 : 0),
-    );
-    const waterParts = Array.from(
-      { length: count },
-      (_, i) => Math.floor(waterBase / count) + (i < waterBase % count ? 1 : 0),
-    );
-    residents.forEach((stay, i) => {
+    const baseElectric = money(electric.usage * pricing.electricity);
+    const baseWater = money(water.usage * pricing.water);
+    const monthlyRoomFee = money(pricing.roomFees?.[type.id] ?? type.fee);
+    const totalPersonDays = eligibleStays.reduce((acc, curr) => acc + curr.daysStayed, 0);
+
+    let allocatedElectric = 0;
+    let allocatedWater = 0;
+
+    eligibleStays.forEach((item, i) => {
+      const { stay, daysStayed, start, end } = item;
+      const roomFee =
+        daysStayed >= daysInMonth
+          ? monthlyRoomFee
+          : money(Math.round((monthlyRoomFee * daysStayed) / daysInMonth));
+
+      let elecFee;
+      let watFee;
+      if (i === eligibleStays.length - 1) {
+        elecFee = Math.max(0, baseElectric - allocatedElectric);
+        watFee = Math.max(0, baseWater - allocatedWater);
+      } else {
+        elecFee =
+          totalPersonDays > 0
+            ? money(Math.round((baseElectric * daysStayed) / totalPersonDays))
+            : 0;
+        watFee =
+          totalPersonDays > 0
+            ? money(Math.round((baseWater * daysStayed) / totalPersonDays))
+            : 0;
+        allocatedElectric += elecFee;
+        allocatedWater += watFee;
+      }
+
       if (
         db.invoices.some(
           (x) => x.studentId === stay.studentId && x.periodId === periodId,
         )
-      )
+      ) {
         return;
-      const roomFee = money(pricing.roomFees?.[type.id] ?? type.fee);
+      }
+
+      const studentObj = db.students.find((s) => s.id === stay.studentId);
       items.push({
         studentId: stay.studentId,
-        studentName: db.students.find((s) => s.id === stay.studentId)?.fullName,
+        studentName: studentObj?.fullName || "Sinh viên",
         roomId: room.id,
         periodId,
         dueDate: period.dueDate,
         snapshot: {
           roomCode: room.code,
           roomTypeName: type.name,
-          occupants: count,
+          occupants: eligibleStays.length,
+          daysStayed,
+          daysInMonth,
+          totalPersonDays,
+          stayStartInPeriod: start,
+          stayEndInPeriod: end,
+          monthlyRoomFee,
           roomFee,
           electricityRate: pricing.electricity,
           waterRate: pricing.water,
@@ -1182,13 +1246,13 @@ function billingPreview(db, periodId) {
           waterStart: water.start,
           waterEnd: water.end,
           waterUsage: water.usage,
-          electricityRoomTotal: base,
-          waterRoomTotal: waterBase,
+          electricityRoomTotal: baseElectric,
+          waterRoomTotal: baseWater,
         },
         roomFee,
-        electricityFee: electricityParts[i],
-        waterFee: waterParts[i],
-        total: money(roomFee + electricityParts[i] + waterParts[i]),
+        electricityFee: elecFee,
+        waterFee: watFee,
+        total: money(roomFee + elecFee + watFee),
       });
     });
   }
@@ -1718,9 +1782,24 @@ async function workQueue() {
   const currentPeriod = db.periods
     .filter((item) => item.status === "ACTIVE" && item.issueDate <= today())
     .sort((a, b) => b.month.localeCompare(a.month))[0];
-  const occupiedRooms = db.rooms.filter(
-    (room) => room.status === "ACTIVE" && occupants(db, room.id) > 0,
-  );
+  const occupiedRooms = currentPeriod
+    ? (() => {
+        const { periodStart, periodEnd, daysInMonth } = getPeriodDateRange(
+          currentPeriod.month,
+        );
+        return db.rooms.filter(
+          (room) =>
+            room.status === "ACTIVE" &&
+            db.stays.some(
+              (stay) =>
+                stay.roomId === room.id &&
+                stayDaysInPeriod(stay, periodStart, periodEnd, daysInMonth) > 0,
+            ),
+        );
+      })()
+    : db.rooms.filter(
+        (room) => room.status === "ACTIVE" && occupants(db, room.id) > 0,
+      );
   const missingReadings = currentPeriod
     ? occupiedRooms.filter((room) =>
         ["ELECTRICITY", "WATER"].some(

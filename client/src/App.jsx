@@ -4498,6 +4498,20 @@ function BillingPage() {
                     render: (x) => x.snapshot.roomCode,
                   },
                   {
+                    key: "stayDays",
+                    label: "Lưu trú",
+                    render: (x) => (
+                      <div>
+                        <span>{x.snapshot.daysStayed ? `${x.snapshot.daysStayed}/${x.snapshot.daysInMonth} ngày` : "Cả kỳ"}</span>
+                        {x.snapshot.daysStayed && x.snapshot.daysInMonth && x.snapshot.daysStayed < x.snapshot.daysInMonth && (
+                          <span className="badge badge-peach" style={{ marginLeft: "6px", fontSize: "11px", padding: "1px 6px" }}>
+                            Vào giữa tháng
+                          </span>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
                     key: "roomFee",
                     label: "Tiền phòng",
                     render: (x) => money(x.roomFee),
@@ -4772,20 +4786,29 @@ function InvoiceDetail() {
         >
           <div className="invoice-lines">
             <div>
-              <span>Phí phòng · {s.roomTypeName}</span>
+              <span>
+                Phí phòng · {s.roomTypeName}
+                {s.daysStayed && s.daysInMonth && s.daysStayed < s.daysInMonth
+                  ? ` (${s.daysStayed}/${s.daysInMonth} ngày)`
+                  : ""}
+              </span>
               <strong>{money(x.roomFee)}</strong>
             </div>
             <div>
               <span>
-                Điện · {s.electricUsage} kWh × {money(s.electricityRate)} ÷{" "}
-                {s.occupants} người
+                Điện · {s.electricUsage} kWh × {money(s.electricityRate)}
+                {s.daysStayed && s.daysInMonth && s.daysStayed < s.daysInMonth
+                  ? ` (${s.daysStayed}/${s.totalPersonDays} ngày-người)`
+                  : ` ÷ ${s.occupants} người`}
               </span>
               <strong>{money(x.electricityFee)}</strong>
             </div>
             <div>
               <span>
-                Nước · {s.waterUsage} m³ × {money(s.waterRate)} ÷ {s.occupants}{" "}
-                người
+                Nước · {s.waterUsage} m³ × {money(s.waterRate)}
+                {s.daysStayed && s.daysInMonth && s.daysStayed < s.daysInMonth
+                  ? ` (${s.daysStayed}/${s.totalPersonDays} ngày-người)`
+                  : ` ÷ ${s.occupants} người`}
               </span>
               <strong>{money(x.waterFee)}</strong>
             </div>
@@ -4808,6 +4831,14 @@ function InvoiceDetail() {
             <div>
               <span>Phòng</span>
               <strong>{s.roomCode}</strong>
+            </div>
+            <div>
+              <span>Thời gian tính phí</span>
+              <strong>
+                {s.daysStayed
+                  ? `${s.daysStayed}/${s.daysInMonth} ngày${s.daysStayed < s.daysInMonth ? " (vào giữa tháng)" : ""}`
+                  : "Trọn kỳ"}
+              </strong>
             </div>
             <div>
               <span>Số người chia</span>

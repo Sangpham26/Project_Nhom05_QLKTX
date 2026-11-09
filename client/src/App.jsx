@@ -275,8 +275,25 @@ function SearchableSelect({
     <div
       ref={containerRef}
       className={`searchable-select-wrap ${disabled ? "is-disabled" : ""}`}
-      style={{ position: "relative", width: "100%" }}
+      style={{ position: "relative", width: "100%", zIndex: open ? 100 : 1 }}
     >
+      <input
+        type="text"
+        name={name}
+        value={value || ""}
+        required={required}
+        readOnly
+        tabIndex={-1}
+        style={{
+          opacity: 0,
+          width: 1,
+          height: 1,
+          position: "absolute",
+          bottom: 0,
+          left: 10,
+          pointerEvents: "none",
+        }}
+      />
       <div
         className={`searchable-select-box ${open ? "is-open" : ""}`}
         onClick={() => {
@@ -305,6 +322,20 @@ function SearchableSelect({
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onBlur={() => {
+              if (search.trim()) {
+                const q = search.toLowerCase().trim();
+                const match = options.find(
+                  (o) =>
+                    o.code?.toLowerCase() === q ||
+                    o.label?.toLowerCase() === q ||
+                    `phòng ${o.code}`.toLowerCase() === q,
+                );
+                if (match) {
+                  handleSelect(match);
+                }
+              }
+            }}
             placeholder={placeholder}
             style={{
               flex: 1,
@@ -464,7 +495,16 @@ function SearchableSelect({
               return (
                 <div
                   key={opt.value}
-                  onClick={() => handleSelect(opt)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelect(opt);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelect(opt);
+                  }}
                   style={{
                     padding: "8px 12px",
                     cursor: "pointer",
@@ -586,13 +626,15 @@ function Field({
         : `Vui lòng kiểm tra ${label.toLowerCase()}.`,
     );
   };
+  const isCustom = searchable && options;
+  const Wrapper = isCustom ? "div" : "label";
   return (
-    <label className="field">
+    <Wrapper className="field">
       <span>
         {label}
         {required && <em>*</em>}
       </span>
-      {searchable && options ? (
+      {isCustom ? (
         <SearchableSelect
           name={name}
           value={value}
@@ -644,7 +686,7 @@ function Field({
       )}{" "}
       {hint && <small>{hint}</small>}
       {fieldError && <small className="field-error">{fieldError}</small>}
-    </label>
+    </Wrapper>
   );
 }
 function Form({
@@ -4255,7 +4297,10 @@ function ReadingsPage() {
         action={
           <button
             className="button button-primary"
-            onClick={() => setShow(true)}
+            onClick={() => {
+              if (!cat.data && !cat.loading) cat.load();
+              setShow(true);
+            }}
           >
             <Plus size={17} />
             Nhập chỉ số
@@ -4328,6 +4373,7 @@ function ReadingsPage() {
                 options:
                   cat.data?.rooms
                     ?.filter((x) => x.status === "ACTIVE")
+                    ?.sort((a, b) => a.code.localeCompare(b.code))
                     ?.map((x) => ({
                       value: x.id,
                       label: `Phòng ${x.code}`,

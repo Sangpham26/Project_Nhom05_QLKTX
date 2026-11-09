@@ -61,7 +61,15 @@ import logoDark from "../img/logo/Mainlogo-Dark.png";
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
 const badge = (value) => (
-  <span className={`badge badge-${String(value || "").toLowerCase()}`}>
+  <span
+    className={`badge badge-${String(value || "").toLowerCase()}`}
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      margin: 0,
+    }}
+  >
     {labels[value] || value || "—"}
   </span>
 );
@@ -3121,7 +3129,9 @@ function StaysPage() {
             <span>Kết thúc dự kiến</span>
             <strong>{date(active[0].plannedEndDate)}</strong>
           </div>
-          <div>{badge(active[0].status)}</div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {badge(active[0].status)}
+          </div>
         </div>
       )}
       <Section
@@ -3998,7 +4008,7 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
               value={roomId}
               onChange={(newId) => setRoomId(newId)}
               options={roomOptions}
-              placeholder="Nhập mã phòng hoặc tên tòa nhà (VD: A102, Tòa B)..."
+              placeholder="Nhập mã phòng hoặc tên tòa nhà"
               emptyText="Không tìm thấy phòng phù hợp"
             />
           )}
@@ -4336,7 +4346,7 @@ function ReadingsPage() {
                 name: "roomId",
                 required: true,
                 searchable: true,
-                placeholder: "Nhập mã phòng để lọc (VD: A101, B202)...",
+                placeholder: "Nhập mã phòng",
                 options:
                   cat.data?.rooms
                     ?.filter((x) => x.status === "ACTIVE")
@@ -5681,7 +5691,7 @@ function UsersPage() {
                           width: "6px",
                           height: "6px",
                           borderRadius: "50%",
-                          background: x.active ? "#16a34a" : "#dc2626",
+                          background: x.active ? "#16a34a" : "#dc2626",                     
                         }}
                       />
                       {x.active ? "Đang hoạt động" : "Đã khóa"}

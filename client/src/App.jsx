@@ -23,6 +23,7 @@ import {
   Bell,
   BedDouble,
   Building2,
+  Calendar,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -32,6 +33,8 @@ import {
   ClipboardList,
   CreditCard,
   DoorOpen,
+  Droplets,
+  FileSpreadsheet,
   FileText,
   ImagePlus,
   LayoutDashboard,
@@ -39,8 +42,10 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Pencil,
   Phone,
   Plus,
+  RotateCw,
   Search,
   Settings2,
   ShieldCheck,
@@ -50,6 +55,7 @@ import {
   Zap,
 } from "lucide-react";
 import { api, money, date, dateTime, labels } from "./services/api";
+import * as XLSX from "xlsx";
 import RoomTypeEditor from "./components/RoomTypeEditor";
 import RoomGallery, { coverOf } from "./components/RoomGallery";
 import LandingPage from "./pages/LandingPage";
@@ -588,6 +594,510 @@ function SearchableSelect({
               );
             })
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  options = [],
+  placeholder = "Tất cả",
+  searchable = true,
+  searchPlaceholder = "Tìm kiếm...",
+  className = "",
+  style = {},
+  minWidth = "140px",
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const wrapRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open && searchable && options.length > 5) {
+      setTimeout(() => searchInputRef.current?.focus(), 40);
+    } else {
+      setSearch("");
+    }
+  }, [open, searchable, options.length]);
+
+  const selected = useMemo(() => {
+    return options.find((o) => String(o.value) === String(value));
+  }, [options, value]);
+
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return options;
+    const q = search.trim().toLowerCase();
+    return options.filter((o) =>
+      (o.label || "").toLowerCase().includes(q) ||
+      (o.code || "").toLowerCase().includes(q),
+    );
+  }, [options, search]);
+
+  const handleSelect = (val) => {
+    onChange(val);
+    setOpen(false);
+  };
+
+  const showSearch = searchable && options.length > 5;
+
+  return (
+    <div
+      ref={wrapRef}
+      className={`filter-select-wrap ${className}`}
+      style={{
+        position: "relative",
+        display: "inline-block",
+        minWidth,
+        ...style,
+      }}
+    >
+      <button
+        type="button"
+        className={`filter-select-trigger ${open ? "is-open" : ""}`}
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "8px",
+          width: "100%",
+          minHeight: "40px",
+          padding: "8px 12px",
+          background: "#ffffff",
+          border: open ? "1.5px solid #292d27" : "1px solid #d5d2c6",
+          borderRadius: "10px",
+          color: selected?.value !== "" && value !== "" ? "#1e293b" : "#64748b",
+          fontSize: "13.5px",
+          fontWeight: 600,
+          cursor: "pointer",
+          boxShadow: open
+            ? "0 0 0 3px rgba(41, 45, 39, 0.08)"
+            : "0 1px 2px rgba(0,0,0,0.03)",
+          transition: "all 0.15s ease",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {selected?.label || placeholder}
+        </span>
+        <ChevronDown
+          size={15}
+          style={{
+            color: "#8c877a",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.18s ease",
+            flexShrink: 0,
+          }}
+        />
+      </button>
+
+      {open && (
+        <div
+          className="filter-select-dropdown"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 5px)",
+            left: 0,
+            zIndex: 9999,
+            width: "max(100%, 200px)",
+            background: "#ffffff",
+            border: "1px solid #d5d2c6",
+            borderRadius: "12px",
+            boxShadow: "0 12px 30px rgba(41, 45, 39, 0.16)",
+            padding: "6px",
+          }}
+        >
+          {showSearch && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+                padding: "6px 9px",
+                background: "#f1f5f9",
+                borderRadius: "8px",
+                marginBottom: "6px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <Search size={13} style={{ color: "#64748b", flexShrink: 0 }} />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={searchPlaceholder}
+                style={{
+                  width: "100%",
+                  border: "none",
+                  background: "transparent",
+                  outline: "none",
+                  fontSize: "12.5px",
+                  color: "#1e293b",
+                  fontWeight: 500,
+                  padding: 0,
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    color: "#94a3b8",
+                    padding: 0,
+                    display: "flex",
+                  }}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div
+            style={{
+              maxHeight: "210px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2px",
+            }}
+          >
+            {filteredOptions.map((opt) => {
+              const isSelected = String(opt.value) === String(value);
+              return (
+                <div
+                  key={opt.value}
+                  onClick={() => handleSelect(opt.value)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "7px 10px",
+                    borderRadius: "7px",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: isSelected ? 700 : 500,
+                    background: isSelected ? "#f1f5f9" : "transparent",
+                    color: isSelected ? "#ac482d" : "#334155",
+                    transition: "background 0.12s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = "#f8fafc";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <span>{opt.label}</span>
+                  {isSelected && (
+                    <Check size={14} style={{ color: "#ac482d" }} />
+                  )}
+                </div>
+              );
+            })}
+
+            {filteredOptions.length === 0 && (
+              <div
+                style={{
+                  padding: "12px 8px",
+                  textAlign: "center",
+                  color: "#94a3b8",
+                  fontSize: "12.5px",
+                }}
+              >
+                Không có lựa chọn phù hợp
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PeriodSelect({
+  value,
+  onChange,
+  periods = [],
+  placeholder = "Tất cả kỳ thu",
+  allowClear = true,
+  className = "",
+  style = {},
+  minWidth = "170px",
+  showPrefix = true,
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const wrapRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => searchInputRef.current?.focus(), 40);
+    } else {
+      setSearch("");
+    }
+  }, [open]);
+
+  const sortedPeriods = useMemo(() => {
+    const list = Array.isArray(periods) ? periods : [];
+    return [...list].sort((a, b) => (b.month || "").localeCompare(a.month || ""));
+  }, [periods]);
+
+  const selectedItem = useMemo(() => {
+    return sortedPeriods.find(
+      (p) => String(p.id) === String(value) || String(p.month) === String(value),
+    );
+  }, [sortedPeriods, value]);
+
+  const filteredPeriods = useMemo(() => {
+    if (!search.trim()) return sortedPeriods;
+    const q = search.trim().toLowerCase();
+    return sortedPeriods.filter((p) => (p.month || "").toLowerCase().includes(q));
+  }, [sortedPeriods, search]);
+
+  const handleSelect = (val) => {
+    onChange(val);
+    setOpen(false);
+  };
+
+  const displayText = selectedItem
+    ? (showPrefix ? `Kỳ ${selectedItem.month}` : selectedItem.month)
+    : placeholder;
+
+  return (
+    <div
+      ref={wrapRef}
+      className={`period-select-wrap ${className}`}
+      style={{
+        position: "relative",
+        display: "inline-block",
+        minWidth,
+        ...style,
+      }}
+    >
+      <button
+        type="button"
+        className={`period-select-trigger ${open ? "is-open" : ""}`}
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "8px",
+          width: "100%",
+          minHeight: "40px",
+          padding: "8px 12px",
+          background: "#ffffff",
+          border: open ? "1.5px solid #292d27" : "1px solid #d5d2c6",
+          borderRadius: "10px",
+          color: selectedItem ? "#1e293b" : "#64748b",
+          fontSize: "13.5px",
+          fontWeight: 600,
+          cursor: "pointer",
+          boxShadow: open
+            ? "0 0 0 3px rgba(41, 45, 39, 0.08)"
+            : "0 1px 2px rgba(0,0,0,0.03)",
+          transition: "all 0.15s ease",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+          <Calendar size={15} style={{ color: "#8c877a" }} />
+          <span>{displayText}</span>
+        </span>
+        <ChevronDown
+          size={15}
+          style={{
+            color: "#8c877a",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.18s ease",
+            flexShrink: 0,
+          }}
+        />
+      </button>
+
+      {open && (
+        <div
+          className="period-select-dropdown"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 5px)",
+            left: 0,
+            zIndex: 9999,
+            width: "max(100%, 220px)",
+            background: "#ffffff",
+            border: "1px solid #d5d2c6",
+            borderRadius: "12px",
+            boxShadow: "0 12px 30px rgba(41, 45, 39, 0.16)",
+            padding: "7px",
+          }}
+        >
+          {/* Ô nhập tìm kỳ thu: màu xám nhạt, placeholder 'Tìm kỳ thu...' */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "7px",
+              padding: "7px 10px",
+              background: "#f1f5f9",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              marginBottom: "6px",
+            }}
+          >
+            <Search size={14} style={{ color: "#94a3b8", flexShrink: 0 }} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm kỳ thu..."
+              style={{
+                width: "100%",
+                border: "none",
+                background: "transparent",
+                outline: "none",
+                fontSize: "13px",
+                color: "#1e293b",
+                padding: 0,
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              maxHeight: "210px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2px",
+            }}
+          >
+            {allowClear && (
+              <div
+                onClick={() => handleSelect("")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px 10px",
+                  borderRadius: "7px",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: !value ? 700 : 500,
+                  background: !value ? "#f8fafc" : "transparent",
+                  color: !value ? "#ac482d" : "#334155",
+                  transition: "background 0.12s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (value) e.currentTarget.style.background = "#f8fafc";
+                }}
+                onMouseLeave={(e) => {
+                  if (value) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span>{placeholder}</span>
+                {!value && <Check size={14} style={{ color: "#ac482d" }} />}
+              </div>
+            )}
+
+            {filteredPeriods.map((p) => {
+              const isSelected =
+                String(p.id) === String(value) || String(p.month) === String(value);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => handleSelect(p.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 10px",
+                    borderRadius: "7px",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: isSelected ? 700 : 500,
+                    background: isSelected ? "#f8fafc" : "transparent",
+                    color: isSelected ? "#ac482d" : "#334155",
+                    transition: "background 0.12s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = "#f8fafc";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <span>{showPrefix ? `Kỳ ${p.month}` : p.month}</span>
+                  {isSelected && <Check size={14} style={{ color: "#ac482d" }} />}
+                </div>
+              );
+            })}
+
+            {filteredPeriods.length === 0 && (
+              <div
+                style={{
+                  padding: "12px 8px",
+                  textAlign: "center",
+                  color: "#94a3b8",
+                  fontSize: "12.5px",
+                }}
+              >
+                Không tìm thấy kỳ thu nào
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1417,9 +1927,295 @@ function Guard({ roles, children, plain = false }) {
     return <Navigate to="/dashboard" replace />;
   return plain ? children : <Shell>{children}</Shell>;
 }
+function ExportLogsModal({ onClose }) {
+  const [mode, setMode] = useState("day"); // 'day' | 'week' | 'month' | 'all'
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const thisMonthStr = useMemo(() => new Date().toISOString().slice(0, 7), []);
+
+  const [selectedDay, setSelectedDay] = useState(todayStr);
+  const [selectedMonth, setSelectedMonth] = useState(thisMonthStr);
+  const [exporting, setExporting] = useState(false);
+  const [previewCount, setPreviewCount] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const getRange = () => {
+    let from = null;
+    let to = null;
+    let label = "";
+
+    if (mode === "day") {
+      from = new Date(`${selectedDay}T00:00:00`).toISOString();
+      to = new Date(`${selectedDay}T23:59:59.999`).toISOString();
+      label = `Ngày ${selectedDay}`;
+    } else if (mode === "week") {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      from = sevenDaysAgo.toISOString();
+      to = now.toISOString();
+      label = `7 ngày gần nhất`;
+    } else if (mode === "month") {
+      const [year, month] = selectedMonth.split("-").map(Number);
+      from = new Date(year, month - 1, 1).toISOString();
+      to = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+      label = `Tháng ${selectedMonth}`;
+    } else {
+      label = `Toàn bộ thời gian`;
+    }
+
+    return { from, to, label };
+  };
+
+  useEffect(() => {
+    let alive = true;
+    setPreviewLoading(true);
+    const { from, to } = getRange();
+    const query = new URLSearchParams({ all: "true" });
+    if (from) query.set("from", from);
+    if (to) query.set("to", to);
+
+    api(`/activity-logs?${query.toString()}`)
+      .then((res) => {
+        if (!alive) return;
+        setPreviewCount(res.items?.length || 0);
+        setPreviewLoading(false);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setPreviewLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [mode, selectedDay, selectedMonth]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setError("");
+    try {
+      const { from, to } = getRange();
+      const query = new URLSearchParams({ all: "true" });
+      if (from) query.set("from", from);
+      if (to) query.set("to", to);
+
+      const res = await api(`/activity-logs?${query.toString()}`);
+      const logs = res.items || [];
+
+      if (!logs.length) {
+        setError("Không có nhật ký nào trong khoảng thời gian đã chọn để xuất.");
+        setExporting(false);
+        return;
+      }
+
+      const rows = logs.map((log, idx) => ({
+        "STT": idx + 1,
+        "Thời gian": log.time || log.createdAt ? new Date(log.time || log.createdAt).toLocaleString("vi-VN") : "",
+        "Hành động": log.action || "",
+        "Tiêu đề": log.title || "",
+        "Nội dung chi tiết": log.body || "",
+        "Đối tượng": log.target || "",
+        "Người thực hiện": log.actorName || "",
+        "Vai trò":
+          log.actorRole === "ADMIN"
+            ? "Ban Giám đốc / QL Hệ thống"
+            : log.actorRole === "STAFF"
+            ? "Cán bộ Vận hành"
+            : "Sinh viên",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      worksheet["!cols"] = [
+        { wch: 6 },
+        { wch: 20 },
+        { wch: 28 },
+        { wch: 40 },
+        { wch: 55 },
+        { wch: 20 },
+        { wch: 25 },
+        { wch: 24 },
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "NhatKyHoatDong");
+
+      const fileSuffix =
+        mode === "day"
+          ? `Ngay_${selectedDay}`
+          : mode === "week"
+          ? `Tuan_7NgayGanNhat`
+          : mode === "month"
+          ? `Thang_${selectedMonth}`
+          : "ToanBo";
+
+      XLSX.writeFile(workbook, `NhatKyHeThong_${fileSuffix}.xlsx`);
+      onClose();
+    } catch (err) {
+      setError(err.message || "Lỗi khi xuất file Excel.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <Modal title="Xuất nhật ký hoạt động hệ thống" onClose={onClose}>
+      <div style={{ display: "grid", gap: "18px" }}>
+        {error && (
+          <div
+            style={{
+              padding: "10px 14px",
+              background: "#fee2e2",
+              border: "1px solid #fca5a5",
+              borderRadius: "8px",
+              color: "#b91c1c",
+              fontSize: "13px",
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <div>
+          <label style={{ display: "block", marginBottom: "8px", fontSize: "13.5px", fontWeight: 700, color: "#1e293b" }}>
+            Chọn khoảng thời gian xuất nhật ký:
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "8px" }}>
+            {[
+              { id: "day", label: "Theo ngày" },
+              { id: "week", label: "Theo tuần" },
+              { id: "month", label: "Theo tháng" },
+              { id: "all", label: "Toàn bộ" },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setMode(t.id)}
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: "8px",
+                  border: mode === t.id ? "1.5px solid #ac482d" : "1px solid #d5d2c6",
+                  background: mode === t.id ? "#fbf6f3" : "#ffffff",
+                  color: mode === t.id ? "#ac482d" : "#475569",
+                  fontWeight: mode === t.id ? 700 : 500,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {mode === "day" && (
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
+              Chọn ngày cần xuất:
+            </label>
+            <input
+              type="date"
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: "40px",
+                padding: "8px 12px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "8px",
+                fontSize: "14px",
+                color: "#1e293b",
+                background: "#ffffff",
+              }}
+            />
+          </div>
+        )}
+
+        {mode === "month" && (
+          <div>
+            <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
+              Chọn tháng cần xuất:
+            </label>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: "40px",
+                padding: "8px 12px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "8px",
+                fontSize: "14px",
+                color: "#1e293b",
+                background: "#ffffff",
+              }}
+            />
+          </div>
+        )}
+
+        {mode === "week" && (
+          <div style={{ padding: "10px 14px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "13px", color: "#475569" }}>
+            Phạm vi: <strong>7 ngày gần nhất</strong> tính đến thời điểm hiện tại.
+          </div>
+        )}
+
+        {mode === "all" && (
+          <div style={{ padding: "10px 14px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "13px", color: "#475569" }}>
+            Phạm vi: <strong>Toàn bộ dữ liệu nhật ký</strong> lưu trong hệ thống.
+          </div>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 14px",
+            background: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            borderRadius: "8px",
+            fontSize: "13.5px",
+          }}
+        >
+          <span style={{ color: "#166534", fontWeight: 500 }}>
+            Số lượng bản ghi thỏa mãn:
+          </span>
+          <strong style={{ fontSize: "15px", color: "#15803d" }}>
+            {previewLoading ? "Đang đếm..." : `${previewCount ?? 0} nhật ký`}
+          </strong>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+          <button type="button" className="button button-outline" onClick={onClose} disabled={exporting}>
+            Đóng
+          </button>
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={handleExport}
+            disabled={exporting || previewLoading || previewCount === 0}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#0284c7",
+              borderColor: "#0284c7",
+            }}
+          >
+            <FileSpreadsheet size={16} />
+            {exporting ? "Đang xuất Excel..." : "Xuất file Excel (.xlsx)"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function Dashboard() {
   const { session } = useAuth();
   const role = session.user.role;
+  const [exportOpen, setExportOpen] = useState(false);
   const apps = useLoad("/applications?limit=20"),
     stays = useLoad("/stays?limit=10"),
     invoices = useLoad("/invoices?limit=100"),
@@ -1921,19 +2717,36 @@ function Dashboard() {
                 <button
                   type="button"
                   onClick={() => logs.load()}
-                  className="text-link"
+                  title="Tải lại nhật ký"
+                  aria-label="Tải lại nhật ký"
                   style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "4px",
-                    fontSize: "13px",
-                    color: "var(--accent)",
+                    justifyContent: "center",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--muted)",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text)";
+                    e.currentTarget.style.borderColor = "var(--text)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--muted)";
+                    e.currentTarget.style.borderColor = "var(--border)";
                   }}
                 >
-                  Cập nhật nhật ký
+                  <RotateCw
+                    size={15}
+                    style={{
+                      animation: logs.loading ? "spin 1s linear infinite" : "none",
+                    }}
+                  />
                 </button>
               }
             >
@@ -1941,76 +2754,115 @@ function Dashboard() {
               {logs.loading && !logs.data ? (
                 <Loading />
               ) : activityLogs.length ? (
-                <div
-                  style={{
-                    maxHeight: "330px",
-                    overflowY: "auto",
-                    paddingRight: "6px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                  }}
-                >
-                  {activityLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: "12px",
-                        padding: "11px 14px",
-                        borderRadius: "10px",
-                        border: "1px solid var(--border)",
-                        background: "var(--surface)",
-                      }}
-                    >
+                <>
+                  <div
+                    style={{
+                      maxHeight: "330px",
+                      overflowY: "auto",
+                      paddingRight: "6px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    {activityLogs.map((log) => (
                       <div
+                        key={log.id}
                         style={{
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          background:
-                            log.actorRole === "ADMIN"
-                              ? "#dc2626"
-                              : log.actorRole === "STAFF"
-                                ? "#2563eb"
-                                : "#16a34a",
-                          marginTop: "6px",
-                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "12px",
+                          padding: "11px 14px",
+                          borderRadius: "10px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface)",
                         }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      >
                         <div
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "8px",
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background:
+                              log.actorRole === "ADMIN"
+                                ? "#dc2626"
+                                : log.actorRole === "STAFF"
+                                  ? "#2563eb"
+                                  : "#16a34a",
+                            marginTop: "6px",
+                            flexShrink: 0,
                           }}
-                        >
-                          <strong style={{ fontSize: "13.5px" }}>
-                            {log.title}
-                          </strong>
-                          <small
-                            className="muted"
-                            style={{ whiteSpace: "nowrap" }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "8px",
+                            }}
                           >
-                            {dateTime(log.time || log.createdAt)}
-                          </small>
+                            <strong style={{ fontSize: "13.5px" }}>
+                              {log.title}
+                            </strong>
+                            <small
+                              className="muted"
+                              style={{ whiteSpace: "nowrap" }}
+                            >
+                              {dateTime(log.time || log.createdAt)}
+                            </small>
+                          </div>
+                          <p
+                            style={{
+                              margin: "3px 0 0",
+                              fontSize: "12.5px",
+                              color: "var(--muted)",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {log.body}
+                          </p>
                         </div>
-                        <p
-                          style={{
-                            margin: "3px 0 0",
-                            fontSize: "12.5px",
-                            color: "var(--muted)",
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {log.body}
-                        </p>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      paddingTop: "12px",
+                      borderTop: "1px solid var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: "10px",
+                    }}
+                  >
+                    <span style={{ fontSize: "12.5px", color: "var(--muted)" }}>
+                      Đang hiển thị {activityLogs.length} nhật ký gần nhất
+                    </span>
+                    <button
+                      type="button"
+                      className="button button-outline button-sm"
+                      onClick={() => setExportOpen(true)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "7px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        padding: "6px 14px",
+                        borderRadius: "8px",
+                        borderColor: "#0284c7",
+                        color: "#0284c7",
+                        background: "#f0f9ff",
+                      }}
+                    >
+                      <FileSpreadsheet size={15} />
+                      Xuất nhật ký Excel
+                    </button>
+                  </div>
+                </>
               ) : (
                 <Empty icon={Bell} title="Chưa có nhật ký hoạt động" />
               )}
@@ -2018,6 +2870,8 @@ function Dashboard() {
           </div>
         </>
       )}
+
+      {exportOpen && <ExportLogsModal onClose={() => setExportOpen(false)} />}
     </>
   );
 }
@@ -3534,48 +4388,60 @@ function StudentsPage() {
             setPage(1);
           }}
         >
-          <select
+          <FilterSelect
             value={building}
-            onChange={(e) => {
-              setBuilding(e.target.value);
-              setRoom(""); // Reset phòng khi đổi tòa nhà để lọc chuẩn xác
+            onChange={(val) => {
+              setBuilding(val);
+              setRoom("");
               setPage(1);
             }}
-          >
-            <option value="">Tất cả tòa</option>
-            {cat.data?.buildings?.map((x) => (
-              <option value={x.id} key={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </select>
-          <select
+            options={[
+              { value: "", label: "Tất cả tòa" },
+              ...(cat.data?.buildings || []).map((b) => ({
+                value: b.id,
+                label: b.name,
+              })),
+            ]}
+            placeholder="Tất cả tòa"
+            minWidth="135px"
+          />
+
+          <FilterSelect
             value={room}
-            onChange={(e) => {
-              setRoom(e.target.value);
+            onChange={(val) => {
+              setRoom(val);
               setPage(1);
             }}
-          >
-            <option value="">Tất cả phòng</option>
-            {cat.data?.rooms
-              ?.filter((x) => !building || x.buildingId === building)
-              ?.map((x) => (
-                <option value={x.id} key={x.id}>
-                  {x.code} {x.building?.name ? `(${x.building.name})` : ""}
-                </option>
-              ))}
-          </select>
-          <select
+            options={[
+              { value: "", label: "Tất cả phòng" },
+              ...(cat.data?.rooms || [])
+                .filter((r) => !building || r.buildingId === building)
+                .map((r) => ({
+                  value: r.id,
+                  label: `${r.code} ${r.building?.name ? `(${r.building.name})` : ""}`,
+                  code: r.code,
+                })),
+            ]}
+            placeholder="Tất cả phòng"
+            searchPlaceholder="Tìm mã phòng..."
+            minWidth="160px"
+          />
+
+          <FilterSelect
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
+            onChange={(val) => {
+              setStatus(val);
               setPage(1);
             }}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang ở</option>
-            <option value="INACTIVE">Chưa ở</option>
-          </select>
+            options={[
+              { value: "", label: "Tất cả trạng thái" },
+              { value: "ACTIVE", label: "Đang ở" },
+              { value: "INACTIVE", label: "Chưa ở" },
+            ]}
+            placeholder="Tất cả trạng thái"
+            searchable={false}
+            minWidth="145px"
+          />
         </SearchBar>
         {data.error ? (
           <div className="inline-error">{data.error}</div>
@@ -4211,53 +5077,471 @@ function TransfersPage() {
   );
 }
 
-function ReadingHint({ values }) {
-  const [previous, setPrevious] = useState(null);
+function ReadingsCombinedModal({
+  initialRoomId = "",
+  initialPeriodId = "",
+  rooms = [],
+  periods = [],
+  onClose,
+  onSaved,
+}) {
+  const [roomId, setRoomId] = useState(initialRoomId);
+  const [periodId, setPeriodId] = useState(() => {
+    if (initialPeriodId) return initialPeriodId;
+    const sorted = [...periods].sort((a, b) =>
+      (b.month || "").localeCompare(a.month || ""),
+    );
+    return sorted[0]?.id || "";
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const [electricStart, setElectricStart] = useState("");
+  const [electricEnd, setElectricEnd] = useState("");
+  const [waterStart, setWaterStart] = useState("");
+  const [waterEnd, setWaterEnd] = useState("");
+
+  const [prevElectric, setPrevElectric] = useState(null);
+  const [prevWater, setPrevWater] = useState(null);
+
   useEffect(() => {
-    if (!values.roomId || !values.periodId || !values.type) {
-      setPrevious(null);
-      return;
-    }
-    setPrevious(null);
+    if (!roomId || !periodId) return;
     let alive = true;
-    api(
-      `/readings/previous?roomId=${values.roomId}&periodId=${values.periodId}&type=${values.type}`,
-    )
-      .then((result) => {
-        if (alive) setPrevious(result);
+    setLoading(true);
+    setError("");
+
+    api(`/readings/room-period?roomId=${roomId}&periodId=${periodId}`)
+      .then((data) => {
+        if (!alive) return;
+        setElectricStart(
+          data.electricity.start !== null && data.electricity.start !== undefined
+            ? String(data.electricity.start)
+            : "",
+        );
+        setElectricEnd(
+          data.electricity.end !== null && data.electricity.end !== undefined
+            ? String(data.electricity.end)
+            : "",
+        );
+        setWaterStart(
+          data.water.start !== null && data.water.start !== undefined
+            ? String(data.water.start)
+            : "",
+        );
+        setWaterEnd(
+          data.water.end !== null && data.water.end !== undefined
+            ? String(data.water.end)
+            : "",
+        );
+        setPrevElectric(data.electricity.previousEnd);
+        setPrevWater(data.water.previousEnd);
       })
-      .catch(() => {
-        if (alive) setPrevious(null);
+      .catch((err) => {
+        if (!alive) return;
+        setError(err.message || "Không thể tải dữ liệu chỉ số của phòng");
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
       });
+
     return () => {
       alive = false;
     };
-  }, [values.roomId, values.periodId, values.type]);
-  if (!values.roomId || !values.periodId || !values.type) return null;
-  const start = previous?.start ?? Number(values.start || 0);
-  const usage =
-    values.end === undefined || values.end === ""
-      ? null
-      : Number(values.end) - start;
+  }, [roomId, periodId]);
+
+  const calcUsage = (startVal, endVal) => {
+    if (endVal === "" || endVal === undefined || endVal === null) return null;
+    const s = Number(startVal || 0);
+    const e = Number(endVal);
+    if (isNaN(e) || isNaN(s)) return null;
+    return e - s;
+  };
+
+  const electricUsage = calcUsage(electricStart, electricEnd);
+  const waterUsage = calcUsage(waterStart, waterEnd);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!roomId) {
+      setError("Vui lòng chọn phòng.");
+      return;
+    }
+    if (!periodId) {
+      setError("Vui lòng chọn kỳ thu.");
+      return;
+    }
+    if (electricEnd === "" && waterEnd === "") {
+      setError("Vui lòng nhập ít nhất một chỉ số điện hoặc chỉ số nước.");
+      return;
+    }
+
+    if (electricEnd !== "") {
+      const eS = Number(electricStart || 0);
+      const eE = Number(electricEnd);
+      if (eE < eS) {
+        setError(`Chỉ số điện cuối (${eE}) không được nhỏ hơn chỉ số đầu (${eS}).`);
+        return;
+      }
+    }
+
+    if (waterEnd !== "") {
+      const wS = Number(waterStart || 0);
+      const wE = Number(waterEnd);
+      if (wE < wS) {
+        setError(`Chỉ số nước cuối (${wE}) không được nhỏ hơn chỉ số đầu (${wS}).`);
+        return;
+      }
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const payload = {
+        roomId,
+        periodId,
+        electricity:
+          electricEnd !== ""
+            ? {
+                start: electricStart !== "" ? Number(electricStart) : undefined,
+                end: Number(electricEnd),
+              }
+            : undefined,
+        water:
+          waterEnd !== ""
+            ? {
+                start: waterStart !== "" ? Number(waterStart) : undefined,
+                end: Number(waterEnd),
+              }
+            : undefined,
+      };
+
+      await api("/readings/combined", {
+        method: "POST",
+        body: payload,
+      });
+
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err.message || "Không thể lưu chỉ số điện nước.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const roomOptions = useMemo(() => {
+    return (rooms || [])
+      .filter((r) => r.status === "ACTIVE" || !r.status)
+      .sort((a, b) => (a.code || "").localeCompare(b.code || ""))
+      .map((r) => ({
+        value: r.id,
+        label: `Phòng ${r.code}`,
+        sublabel: `${r.building?.name || ""} · ${r.roomType?.name || ""}`,
+        badge: r.building?.name || "",
+        code: r.code,
+      }));
+  }, [rooms]);
+
   return (
-    <div className="reading-preview">
-      <div>
-        <span>Chỉ số kỳ trước</span>
-        <strong>{previous?.start ?? "Kỳ đầu / chưa có"}</strong>
-      </div>
-      <div>
-        <span>Chỉ số đầu kỳ</span>
-        <strong>{start}</strong>
-      </div>
-      <div>
-        <span>Tiêu thụ dự kiến</span>
-        <strong>
-          {usage === null ? "—" : usage >= 0 ? usage : "Không hợp lệ"}
-        </strong>
-      </div>
-    </div>
+    <Modal title="Nhập & Cập nhật chỉ số điện nước" onClose={onClose}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {error && (
+          <div
+            style={{
+              padding: "10px 14px",
+              background: "#fee2e2",
+              border: "1px solid #fca5a5",
+              borderRadius: "8px",
+              color: "#b91c1c",
+              fontSize: "13px",
+              fontWeight: 500,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+          <div className="field">
+            <label style={{ display: "block", marginBottom: "6px", fontWeight: 600, fontSize: "13px" }}>
+              Phòng <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <SearchableSelect
+              value={roomId}
+              onChange={(val) => setRoomId(val)}
+              options={roomOptions}
+              placeholder="Chọn phòng..."
+              searchPlaceholder="Tìm mã phòng..."
+            />
+          </div>
+
+          <div className="field">
+            <label style={{ display: "block", marginBottom: "6px", fontWeight: 600, fontSize: "13px" }}>
+              Kỳ thu <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <PeriodSelect
+              value={periodId}
+              onChange={(val) => setPeriodId(val)}
+              periods={periods}
+              placeholder="Chọn kỳ thu"
+              allowClear={false}
+              style={{ width: "100%" }}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
+            <Loading />
+            <div style={{ marginTop: "8px", fontSize: "13px" }}>Đang tải chỉ số phòng...</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {/* Card Điện: Vàng / Cam */}
+            <div
+              style={{
+                border: "1.5px solid #fef08a",
+                background: "#fefce8",
+                borderRadius: "12px",
+                padding: "14px 16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "12px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "8px",
+                      background: "#fef9c3",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #fde047",
+                    }}
+                  >
+                    <Zap size={18} style={{ color: "#ca8a04", fill: "#fde047" }} />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: "14px", color: "#854d0e" }}>Chỉ số Điện (kWh)</strong>
+                    {prevElectric !== null && (
+                      <div style={{ fontSize: "11.5px", color: "#a16207" }}>
+                        Chỉ số chốt kỳ trước: <strong>{prevElectric}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {electricUsage !== null && (
+                  <div
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "6px",
+                      background: electricUsage >= 0 ? "#fef08a" : "#fee2e2",
+                      color: electricUsage >= 0 ? "#713f12" : "#991b1b",
+                      fontSize: "12.5px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {electricUsage >= 0 ? `Tiêu thụ: ${electricUsage} kWh` : "Không hợp lệ"}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "#713f12", marginBottom: "4px" }}>
+                    Chỉ số đầu kỳ
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={electricStart}
+                    onChange={(e) => setElectricStart(e.target.value)}
+                    placeholder="0"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #fde047",
+                      background: "#ffffff",
+                      fontSize: "13.5px",
+                      outline: "none",
+                    }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#854d0e", marginTop: "3px" }}>
+                    Tự động lấy số cuối kỳ trước nếu có
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "#713f12", marginBottom: "4px" }}>
+                    Chỉ số cuối kỳ <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={electricEnd}
+                    onChange={(e) => setElectricEnd(e.target.value)}
+                    placeholder="Nhập số điện mới nhất"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #fde047",
+                      background: "#ffffff",
+                      fontSize: "13.5px",
+                      fontWeight: 600,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Card Nước: Xanh biển */}
+            <div
+              style={{
+                border: "1.5px solid #bae6fd",
+                background: "#f0f9ff",
+                borderRadius: "12px",
+                padding: "14px 16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "12px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "8px",
+                      background: "#e0f2fe",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #7dd3fc",
+                    }}
+                  >
+                    <Droplets size={18} style={{ color: "#0284c7", fill: "#bae6fd" }} />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: "14px", color: "#0369a1" }}>Chỉ số Nước (m³)</strong>
+                    {prevWater !== null && (
+                      <div style={{ fontSize: "11.5px", color: "#0284c7" }}>
+                        Chỉ số chốt kỳ trước: <strong>{prevWater}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {waterUsage !== null && (
+                  <div
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "6px",
+                      background: waterUsage >= 0 ? "#bae6fd" : "#fee2e2",
+                      color: waterUsage >= 0 ? "#0c4a6e" : "#991b1b",
+                      fontSize: "12.5px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {waterUsage >= 0 ? `Tiêu thụ: ${waterUsage} m³` : "Không hợp lệ"}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "#0369a1", marginBottom: "4px" }}>
+                    Chỉ số đầu kỳ
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={waterStart}
+                    onChange={(e) => setWaterStart(e.target.value)}
+                    placeholder="0"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #7dd3fc",
+                      background: "#ffffff",
+                      fontSize: "13.5px",
+                      outline: "none",
+                    }}
+                  />
+                  <div style={{ fontSize: "11px", color: "#0284c7", marginTop: "3px" }}>
+                    Tự động lấy số cuối kỳ trước nếu có
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, color: "#0369a1", marginBottom: "4px" }}>
+                    Chỉ số cuối kỳ <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={waterEnd}
+                    onChange={(e) => setWaterEnd(e.target.value)}
+                    placeholder="Nhập số nước mới nhất"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #7dd3fc",
+                      background: "#ffffff",
+                      fontSize: "13.5px",
+                      fontWeight: 600,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
+          <button
+            type="button"
+            className="button button-outline"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            className="button button-primary"
+            disabled={saving || loading}
+            style={{ minWidth: "120px" }}
+          >
+            {saving ? "Đang lưu..." : "Lưu chỉ số"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
+
 function ReadingsPage() {
   const [page, setPage] = useState(1),
     [search, setSearch] = useState(""),
@@ -4267,49 +5551,80 @@ function ReadingsPage() {
     ),
     cat = useLoad("/catalog"),
     periods = useLoad("/periods?limit=100");
+
   useEffect(() => {
     const refresh = () => data.load();
     window.addEventListener("work-queue-changed", refresh);
     return () => window.removeEventListener("work-queue-changed", refresh);
   }, [page, search, period]);
-  const [show, setShow] = useState(false),
-    [message, notice, clear] = useNotice();
-  const save = async (v) => {
-    await api("/readings", {
-      method: "POST",
-      body: {
-        ...v,
-        end: Number(v.end),
-        start:
-          v.start !== "" && v.start !== undefined ? Number(v.start) : undefined,
-      },
+
+  const [modalState, setModalState] = useState({
+    open: false,
+    roomId: "",
+    periodId: "",
+  });
+  const [message, notice, clear] = useNotice();
+
+  // Gom các chỉ số điện và nước theo từng phòng và kỳ thu để hiển thị và chỉnh sửa trực quan
+  const groupedReadings = useMemo(() => {
+    const map = new Map();
+    (data.data?.items || []).forEach((item) => {
+      const key = `${item.roomId}_${item.periodId}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          id: key,
+          roomId: item.roomId,
+          periodId: item.periodId,
+          room: item.room,
+          period: item.period,
+          electricity: null,
+          water: null,
+        });
+      }
+      const group = map.get(key);
+      if (item.type === "ELECTRICITY") {
+        group.electricity = item;
+      } else if (item.type === "WATER") {
+        group.water = item;
+      }
     });
-    setShow(false);
-    data.load();
-    notice("Đã lưu chỉ số điện nước.");
+    return Array.from(map.values());
+  }, [data.data?.items]);
+
+  const handleOpenNew = () => {
+    if (!cat.data && !cat.loading) cat.load();
+    setModalState({
+      open: true,
+      roomId: "",
+      periodId: period || periods.data?.items?.[0]?.id || "",
+    });
   };
+
+  const handleOpenEdit = (roomId, periodId) => {
+    if (!cat.data && !cat.loading) cat.load();
+    setModalState({
+      open: true,
+      roomId,
+      periodId,
+    });
+  };
+
   return (
     <>
       <PageTitle
         kicker="VẬN HÀNH & TIỆN ÍCH"
         title="Chỉ số điện nước"
-        description="Nhập chỉ số theo phòng và kỳ thu, theo dõi lượng tiêu thụ."
+        description="Nhập và cập nhật chỉ số điện nước theo phòng, theo dõi sản lượng tiêu thụ."
         action={
-          <button
-            className="button button-primary"
-            onClick={() => {
-              if (!cat.data && !cat.loading) cat.load();
-              setShow(true);
-            }}
-          >
+          <button className="button button-primary" onClick={handleOpenNew}>
             <Plus size={17} />
             Nhập chỉ số
           </button>
         }
       />
       <Section
-        title="Sổ chỉ số"
-        subtitle="Mỗi phòng có một chỉ số điện và một chỉ số nước trong mỗi kỳ"
+        title="Sổ chỉ số điện nước"
+        subtitle="Danh sách ghi nhận điện nước theo phòng và kỳ thu (bấm 'Chỉnh sửa' để cập nhật nhanh)"
       >
         <SearchBar
           value={search}
@@ -4318,112 +5633,136 @@ function ReadingsPage() {
             setPage(1);
           }}
         >
-          <select
+          <PeriodSelect
+            periods={periods.data?.items}
             value={period}
-            onChange={(e) => {
-              setPeriod(e.target.value);
+            onChange={(val) => {
+              setPeriod(val);
               setPage(1);
             }}
-          >
-            <option value="">Tất cả kỳ thu</option>
-            {periods.data?.items?.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.month}
-              </option>
-            ))}
-          </select>
+            placeholder="Tất cả kỳ thu"
+            minWidth="175px"
+          />
         </SearchBar>
-        {data.data?.items?.length ? (
+
+        {groupedReadings.length ? (
           <>
             <Table
-              items={data.data.items}
+              items={groupedReadings}
               columns={[
                 {
                   key: "room",
                   label: "Phòng",
-                  render: (x) => <strong>{x.room?.code}</strong>,
+                  render: (x) => (
+                    <div>
+                      <strong>Phòng {x.room?.code}</strong>
+                      {x.room?.building?.name && (
+                        <div style={{ fontSize: "11.5px", color: "#64748b" }}>
+                          {x.room.building.name}
+                        </div>
+                      )}
+                    </div>
+                  ),
                 },
-                { key: "period", label: "Kỳ", render: (x) => x.period?.month },
-                { key: "type", label: "Loại", render: (x) => badge(x.type) },
-                { key: "start", label: "Đầu kỳ" },
-                { key: "end", label: "Cuối kỳ" },
                 {
-                  key: "usage",
-                  label: "Tiêu thụ",
-                  render: (x) => <strong>{x.usage}</strong>,
+                  key: "period",
+                  label: "Kỳ thu",
+                  render: (x) => <span>Kỳ {x.period?.month}</span>,
+                },
+                {
+                  key: "electricity",
+                  label: "Chỉ số Điện (kWh)",
+                  render: (x) =>
+                    x.electricity ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Zap size={16} style={{ color: "#ca8a04", fill: "#fde047", flexShrink: 0 }} />
+                        <div>
+                          <div>
+                            <span style={{ color: "#64748b", fontSize: "12px" }}>Đầu:</span> {x.electricity.start} →{" "}
+                            <span style={{ color: "#64748b", fontSize: "12px" }}>Cuối:</span> <strong>{x.electricity.end}</strong>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#b45309", fontWeight: 700 }}>
+                            Tiêu thụ: {x.electricity.usage} kWh
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#94a3b8" }}>
+                        <Zap size={15} style={{ color: "#cbd5e1" }} />
+                        <span style={{ fontSize: "12px", fontStyle: "italic" }}>Chưa nhập</span>
+                      </div>
+                    ),
+                },
+                {
+                  key: "water",
+                  label: "Chỉ số Nước (m³)",
+                  render: (x) =>
+                    x.water ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Droplets size={16} style={{ color: "#0284c7", fill: "#bae6fd", flexShrink: 0 }} />
+                        <div>
+                          <div>
+                            <span style={{ color: "#64748b", fontSize: "12px" }}>Đầu:</span> {x.water.start} →{" "}
+                            <span style={{ color: "#64748b", fontSize: "12px" }}>Cuối:</span> <strong>{x.water.end}</strong>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#0284c7", fontWeight: 700 }}>
+                            Tiêu thụ: {x.water.usage} m³
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#94a3b8" }}>
+                        <Droplets size={15} style={{ color: "#cbd5e1" }} />
+                        <span style={{ fontSize: "12px", fontStyle: "italic" }}>Chưa nhập</span>
+                      </div>
+                    ),
+                },
+                {
+                  key: "actions",
+                  label: "Thao tác",
+                  render: (x) => (
+                    <button
+                      type="button"
+                      className="button button-outline button-sm"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => handleOpenEdit(x.roomId, x.periodId)}
+                    >
+                      <Pencil size={13} />
+                      Chỉnh sửa
+                    </button>
+                  ),
                 },
               ]}
             />
             <Pager data={data.data} page={page} setPage={setPage} />
           </>
         ) : (
-          <Empty icon={Zap} />
+          <Empty icon={Zap} title="Chưa có chỉ số điện nước nào" />
         )}
       </Section>
-      {show && (
-        <Modal title="Nhập chỉ số điện nước" onClose={() => setShow(false)}>
-          <Form
-            fields={[
-              {
-                label: "Phòng",
-                name: "roomId",
-                required: true,
-                searchable: true,
-                placeholder: "Nhập mã phòng",
-                options:
-                  cat.data?.rooms
-                    ?.filter((x) => x.status === "ACTIVE")
-                    ?.sort((a, b) => a.code.localeCompare(b.code))
-                    ?.map((x) => ({
-                      value: x.id,
-                      label: `Phòng ${x.code}`,
-                      sublabel: `${x.building?.name || ""} · ${x.roomType?.name || ""}`,
-                      badge: x.building?.name || "",
-                      code: x.code,
-                    })) || [],
-              },
-              {
-                label: "Kỳ thu",
-                name: "periodId",
-                required: true,
-                options:
-                  periods.data?.items?.map((x) => ({
-                    value: x.id,
-                    label: x.month,
-                  })) || [],
-              },
-              {
-                label: "Loại chỉ số",
-                name: "type",
-                required: true,
-                options: [
-                  { value: "ELECTRICITY", label: "Điện (kWh)" },
-                  { value: "WATER", label: "Nước (m³)" },
-                ],
-              },
-              {
-                label: "Chỉ số đầu kỳ",
-                name: "start",
-                type: "number",
-                min: 0,
-                hint: "Chỉ nhập cho kỳ đầu tiên. Kỳ sau tự lấy chỉ số cuối trước đó.",
-              },
-              {
-                label: "Chỉ số cuối kỳ",
-                name: "end",
-                type: "number",
-                min: 0,
-                required: true,
-              },
-            ]}
-            onSave={save}
-            onCancel={() => setShow(false)}
-            submit="Lưu chỉ số"
-          >
-            {(values) => <ReadingHint values={values} />}
-          </Form>
-        </Modal>
+
+      {modalState.open && (
+        <ReadingsCombinedModal
+          initialRoomId={modalState.roomId}
+          initialPeriodId={modalState.periodId}
+          rooms={cat.data?.rooms || []}
+          periods={periods.data?.items || []}
+          onClose={() => setModalState({ open: false, roomId: "", periodId: "" })}
+          onSaved={() => {
+            data.load();
+            notice("Đã lưu chỉ số điện nước thành công.");
+          }}
+        />
       )}
+
       <Toast message={message} onClose={() => clear(null)} />
     </>
   );
@@ -4444,6 +5783,19 @@ function BillingPage() {
         notice(e.message, "error");
       }
   };
+
+  // Tự động chọn luôn kỳ thu mới nhất và hiển thị dữ liệu ngay khi vào trang
+  useEffect(() => {
+    if (!selected && periods.data?.items?.length) {
+      const sorted = [...periods.data.items].sort((a, b) =>
+        (b.month || "").localeCompare(a.month || ""),
+      );
+      if (sorted[0]?.id) {
+        choose(sorted[0].id);
+      }
+    }
+  }, [periods.data?.items, selected]);
+
   useEffect(() => {
     if (!selected) return;
     const refresh = () =>
@@ -4482,16 +5834,16 @@ function BillingPage() {
         title="Chọn kỳ thu"
         subtitle="Hóa đơn giữ nguyên đơn giá và số người chia tại thời điểm phát hành"
       >
-        <div className="billing-select">
-          <select value={selected} onChange={(e) => choose(e.target.value)}>
-            <option value="">Chọn kỳ thu</option>
-            {periods.data?.items?.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.month}
-              </option>
-            ))}
-          </select>
-          <Link className="button button-outline" to="/readings">
+        <div className="billing-select" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <PeriodSelect
+            periods={periods.data?.items}
+            value={selected}
+            onChange={(val) => choose(val)}
+            placeholder="Chọn kỳ thu"
+            allowClear={false}
+            minWidth="200px"
+          />
+          <Link className="button button-outline" to="/readings" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
             Xem chỉ số <ArrowRight size={16} />
           </Link>
         </div>
@@ -4661,49 +6013,50 @@ function InvoicesPage() {
             setPage(1);
           }}
         >
-          <select
+          <PeriodSelect
+            periods={periods.data?.items}
             value={period}
-            onChange={(e) => {
-              setPeriod(e.target.value);
+            onChange={(val) => {
+              setPeriod(val);
               setPage(1);
             }}
-          >
-            <option value="">Tất cả kỳ</option>
-            {periods.data?.items?.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.month}
-              </option>
-            ))}
-          </select>
-          <select
+            placeholder="Tất cả kỳ"
+            minWidth="160px"
+          />
+          <FilterSelect
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
+            onChange={(val) => {
+              setStatus(val);
               setPage(1);
             }}
-          >
-            <option value="">Tất cả trạng thái</option>
-            {["UNPAID", "PARTIAL", "PAID", "OVERDUE"].map((x) => (
-              <option key={x} value={x}>
-                {labels[x]}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: "", label: "Tất cả trạng thái" },
+              { value: "UNPAID", label: labels.UNPAID },
+              { value: "PARTIAL", label: labels.PARTIAL },
+              { value: "PAID", label: labels.PAID },
+              { value: "OVERDUE", label: labels.OVERDUE },
+            ]}
+            placeholder="Tất cả trạng thái"
+            searchable={false}
+            minWidth="160px"
+          />
           {!own && (
-            <select
+            <FilterSelect
               value={building}
-              onChange={(e) => {
-                setBuilding(e.target.value);
+              onChange={(val) => {
+                setBuilding(val);
                 setPage(1);
               }}
-            >
-              <option value="">Tất cả tòa</option>
-              {catalog.data?.buildings?.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "Tất cả tòa" },
+                ...(catalog.data?.buildings || []).map((b) => ({
+                  value: b.id,
+                  label: b.name,
+                })),
+              ]}
+              placeholder="Tất cả tòa"
+              minWidth="140px"
+            />
           )}
         </SearchBar>
         {data.error ? (
@@ -5930,26 +7283,27 @@ function ReportPage() {
         description="Số liệu cập nhật trực tiếp từ phòng, lưu trú và hóa đơn."
       />
       <div className="filter-panel">
-        <div className="search-bar">
-          <select
+        <div className="search-bar" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <FilterSelect
             value={building}
-            onChange={(e) => setBuilding(e.target.value)}
-          >
-            <option value="">Tất cả tòa</option>
-            {cat.data?.buildings?.map((x) => (
-              <option value={x.id} key={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </select>
-          <select value={period} onChange={(e) => setPeriod(e.target.value)}>
-            <option value="">Tất cả kỳ thu</option>
-            {periods.data?.items?.map((x) => (
-              <option value={x.id} key={x.id}>
-                {x.month}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setBuilding(val)}
+            options={[
+              { value: "", label: "Tất cả tòa" },
+              ...(cat.data?.buildings || []).map((b) => ({
+                value: b.id,
+                label: b.name,
+              })),
+            ]}
+            placeholder="Tất cả tòa"
+            minWidth="150px"
+          />
+          <PeriodSelect
+            periods={periods.data?.items}
+            value={period}
+            onChange={(val) => setPeriod(val)}
+            placeholder="Tất cả kỳ thu"
+            minWidth="175px"
+          />
         </div>
       </div>
       <div className="metrics-grid four">

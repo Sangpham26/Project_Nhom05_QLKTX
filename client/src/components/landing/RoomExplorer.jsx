@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Expand, ImageOff } from 'lucide-react';
-import { api, labels, money } from '../api';
+import { api, labels, money } from '../../services/api';
 import Photo from './Photo';
 import LandingGallery from './LandingGallery';
 

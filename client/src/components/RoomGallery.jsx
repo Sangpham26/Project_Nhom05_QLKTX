@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { BedDouble, Building2, ImageOff, RefreshCw, Users } from "lucide-react";
-import { api, labels, money } from "./api";
+import { api, labels, money } from "../services/api";
 
 export function coverOf(type) {
   const images = [...(type?.images || [])].sort((a, b) => a.order - b.order);

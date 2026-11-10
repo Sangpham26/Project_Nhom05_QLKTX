@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ImagePlus, Star, Trash2, UploadCloud } from 'lucide-react';
-import { api, uploadRoomImage } from './api';
+import { api, uploadRoomImage } from '../services/api';
 
 const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const maxBytes = 5 * 1024 * 1024;

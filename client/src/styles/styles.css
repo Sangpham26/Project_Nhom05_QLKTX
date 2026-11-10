@@ -856,30 +856,37 @@ h3 {
 .search-bar input,
 .search-bar select,
 .small-select,
-.billing-select select {
-  height: 39px;
-  border: 1px solid #e2e9ea;
+.billing-select select,
+select {
+  height: 40px;
+  border: 1px solid #d5d2c6;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 0 12px;
-  color: #4c6976;
+  color: #1e293b;
   font-size: var(--font-sm);
   outline: none;
+  transition: all 0.15s ease;
 }
 .search-input input {
   width: 100%;
   padding-left: 37px;
+  border-radius: 10px;
 }
 .search-bar input:focus,
 .search-bar select:focus,
+.small-select:focus,
+.billing-select select:focus,
+select:focus,
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: #6a9bab;
-  box-shadow: 0 0 0 3px #e6f1f3;
+  border-color: #292d27;
+  box-shadow: 0 0 0 3px rgba(41, 45, 39, 0.08);
 }
 .search-bar select {
-  min-width: 130px;
+  min-width: 140px;
+  border-radius: 10px;
 }
 .check-filter {
   display: flex;

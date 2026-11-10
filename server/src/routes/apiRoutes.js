@@ -245,21 +245,35 @@ r.post(
 // Xem danh sách chỉ số điện nước đã ghi nhận
 r.get(
   "/readings",
-  staffOnly,
+  staffOrAdmin,
   send((req) => s.readings(req.query)),
+);
+
+// Lấy thông tin chỉ số điện nước theo phòng và kỳ thu (kèm chỉ số kỳ trước)
+r.get(
+  "/readings/room-period",
+  staffOrAdmin,
+  send((req) => s.readingGetByRoomAndPeriod(req.query)),
+);
+
+// Lưu hoặc cập nhật đồng thời cả chỉ số điện và nước cho một phòng
+r.post(
+  "/readings/combined",
+  staffOrAdmin,
+  send((req) => s.readingSaveCombined(req.user, req.body)),
 );
 
 // Lấy chỉ số kỳ trước làm căn cứ gợi ý chỉ số đầu kỳ mới
 r.get(
   "/readings/previous",
-  staffOnly,
+  staffOrAdmin,
   send((req) => s.readingPrevious(req.query)),
 );
 
-// Nhân viên KTX ghi chỉ số điện nước mới cho phòng
+// Ghi chỉ số điện nước mới cho phòng
 r.post(
   "/readings",
-  staffOnly,
+  staffOrAdmin,
   send((req) => s.readingCreate(req.user, req.body)),
 );
 
@@ -270,14 +284,14 @@ r.get(
   send((req) => s.preview(req.params.periodId)),
 );
 
-// Nhân viên KTX chốt và phát hành hóa đơn chính thức cho cả kỳ
+// Chốt và phát hành hóa đơn chính thức cho cả kỳ
 r.post(
   "/billing/issue/:periodId",
   staffOrAdmin,
   send((req) => s.issue(req.user, req.params.periodId)),
 );
 
-// Xem danh sách hóa đơn (Sinh viên chỉ xem của mình, Nhân viên xem tất cả)
+// Xem danh sách hóa đơn (Sinh viên chỉ xem của mình, Nhân viên/Admin xem tất cả)
 r.get(
   "/invoices",
   send((req) => s.invoices(req.user, req.query)),
@@ -289,10 +303,10 @@ r.get(
   send((req) => s.invoiceDetail(req.user, req.params.id)),
 );
 
-// Nhân viên KTX ghi nhận khoản thanh toán từ sinh viên
+// Ghi nhận khoản thanh toán từ sinh viên
 r.post(
   "/payments",
-  staffOnly,
+  staffOrAdmin,
   send((req) => s.paymentCreate(req.user, req.body)),
 );
 

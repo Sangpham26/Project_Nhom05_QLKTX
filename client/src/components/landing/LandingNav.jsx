@@ -4,6 +4,57 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, LayoutDashboard, LogOut, Menu, Users, X } from 'lucide-react';
 import { labels } from '../../services/api';
 import logoDark from '../../../img/logo/Mainlogo-Dark.png';
+import logoLight from '../../../img/logo/Mainlogo-light.png';
+
+const DARK_SELECTORS = '.dl-rooms, .dl-hero, .dl-start, .dl-footer, [data-nav-theme="dark"], [data-theme="dark"], .theme-dark, .dark-section';
+
+function checkIsDark(navEl, headerEl) {
+  if (typeof document === 'undefined' || !document.elementsFromPoint) {
+    return false;
+  }
+  const y = 39;
+  const sampleX = [
+    window.innerWidth * 0.5,
+    window.innerWidth * 0.25,
+    window.innerWidth * 0.75,
+  ];
+
+  for (const x of sampleX) {
+    const elements = document.elementsFromPoint(x, y) || [];
+    const under = elements.find(
+      (el) => el && el !== headerEl && el !== navEl && !headerEl?.contains(el)
+    );
+
+    if (!under) continue;
+
+    if (under.closest(DARK_SELECTORS)) {
+      return true;
+    }
+
+    let curr = under;
+    while (curr && curr !== document.body && curr !== document.documentElement) {
+      const style = window.getComputedStyle(curr);
+      const bg = style.backgroundColor;
+      if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+        const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+        if (match) {
+          const r = Number(match[1]);
+          const g = Number(match[2]);
+          const b = Number(match[3]);
+          const a = match[4] !== undefined ? Number(match[4]) : 1;
+          if (a > 0.4) {
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (lum < 140) return true;
+            break;
+          }
+        }
+      }
+      curr = curr.parentElement;
+    }
+  }
+
+  return false;
+}
 
 const navItems = [
   { label: 'Trang chủ', href: '#dau-trang' },
@@ -14,20 +65,41 @@ const navItems = [
 
 export default function LandingNav({ session, onLogout, home = true }) {
   const [scrolled, setScrolled] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const headerRef = useRef(null);
+  const navRef = useRef(null);
   const trigger = useRef(null);
   const mobileMenu = useRef(null);
   const accountWrap = useRef(null);
   const accountTrigger = useRef(null);
   const accountMenu = useRef(null);
+
   useEffect(() => {
+    let ticking = false;
+
     const update = () => {
+      ticking = false;
       setScrolled(window.scrollY > 18);
+      setIsDark(checkIsDark(navRef.current, headerRef.current));
     };
+
     update();
-    window.addEventListener('scroll', update, { passive: true });
-    return () => window.removeEventListener('scroll', update);
+
+    const onScrollOrResize = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(update);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
   }, []);
   useEffect(() => {
     if (!open) return;
@@ -77,11 +149,20 @@ export default function LandingNav({ session, onLogout, home = true }) {
     items[next].focus();
   };
   return (
-    <header className={`lp-header${scrolled ? ' is-scrolled' : ''}`}>
-      <nav className={`lp-nav lp-container${session ? ' has-session' : ''}`} aria-label="Điều hướng trang chủ">
+    <header ref={headerRef} className={`lp-header${scrolled ? ' is-scrolled' : ''}${isDark ? ' is-dark' : ''}`}>
+      <nav ref={navRef} className={`lp-nav lp-container${session ? ' has-session' : ''}${isDark ? ' is-dark' : ''}`} aria-label="Điều hướng trang chủ">
         <a className="lp-brand" href={home ? '#dau-trang' : '/'} aria-label="Nhóm 05, về trang chủ">
           <span className="lp-brand-symbol">
-            <img src={logoDark} alt="Logo Nhóm 05" className="lp-brand-logo" />
+            <img
+              src={logoDark}
+              alt="Logo Nhóm 05"
+              className={`lp-brand-logo lp-brand-logo-dark${isDark ? ' is-hidden' : ''}`}
+            />
+            <img
+              src={logoLight}
+              alt="Logo Nhóm 05"
+              className={`lp-brand-logo lp-brand-logo-light${!isDark ? ' is-hidden' : ''}`}
+            />
           </span>
           <span><strong>Nhóm 05</strong><small>QUẢN LÝ KÝ TÚC XÁ</small></span>
         </a>

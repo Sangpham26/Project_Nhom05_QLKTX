@@ -70,7 +70,7 @@ export default function RoomExplorer() {
     setSelectedId(types[next].id);
     document.getElementById(`dl-room-tab-${types[next].id}`)?.focus();
   };
-  return <section id="phong-o" className="dl-rooms" aria-labelledby="dl-rooms-heading"><div className="dl-container">
+  return <section id="phong-o" className="dl-rooms" data-nav-theme="dark" aria-labelledby="dl-rooms-heading"><div className="dl-container">
     <div className="dl-section-head" data-dl-reveal><span className="dl-kicker">03 / CÁC LOẠI PHÒNG</span><h2 id="dl-rooms-heading">Các loại phòng.<br /><em>Chỗ còn trống.</em></h2><p>So sánh loại phòng, xem từng góc nhìn và kiểm tra chỗ còn trống trước khi gửi nguyện vọng.</p></div>
     {catalog.loading && <div className="dl-catalog-state" role="status"><span className="dl-loading-line" /><p>Đang tải các loại phòng…</p></div>}
     {!catalog.loading && catalog.error && <div className="dl-catalog-state" role="alert"><h3>Chưa tải được thông tin phòng.</h3><p>{catalog.error}</p><button type="button" className="dl-button dl-button-outline" onClick={catalog.retry}>Thử lại<ArrowUpRight size={18} /></button></div>}

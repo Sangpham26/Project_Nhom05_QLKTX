@@ -35,6 +35,7 @@ function Hero() {
     <section
       ref={section}
       className="dl-hero"
+      data-nav-theme="dark"
       aria-labelledby="dl-hero-heading"
     >
       <div className="dl-hero-image">
@@ -155,6 +156,7 @@ function JourneyCTA({ session }) {
     <section
       id="quy-trinh"
       className="dl-start"
+      data-nav-theme="dark"
       aria-labelledby="dl-start-heading"
     >
       <div className="dl-container">
@@ -218,7 +220,7 @@ function JourneyCTA({ session }) {
 
 function Footer({ session }) {
   return (
-    <footer className="dl-footer">
+    <footer className="dl-footer" data-nav-theme="dark">
       <div className="dl-container">
         <div className="dl-footer-main">
           <a className="dl-footer-brand" href="#dau-trang">

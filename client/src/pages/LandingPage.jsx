@@ -1,17 +1,17 @@
 import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, ArrowUpRight } from "lucide-react";
-import { landingAssets } from "./landingAssets";
-import LandingNav from "./landing/LandingNav";
-import ScrollStory from "./landing/ScrollStory";
-import RoomExplorer from "./landing/RoomExplorer";
-import Photo from "./landing/Photo";
+import { landingAssets } from "../data/landingAssets";
+import LandingNav from "../components/landing/LandingNav";
+import ScrollStory from "../components/landing/ScrollStory";
+import RoomExplorer from "../components/landing/RoomExplorer";
+import Photo from "../components/landing/Photo";
 import {
   clamp,
   observeScroll,
   useMediaQuery,
   useReveal,
-} from "./landing/useLandingMotion";
+} from "../components/landing/useLandingMotion";
 
 function Hero() {
   const section = useRef(null);

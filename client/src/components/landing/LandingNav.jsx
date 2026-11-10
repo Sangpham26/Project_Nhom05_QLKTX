@@ -2,8 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, LayoutDashboard, LogOut, Menu, Users, X } from 'lucide-react';
-import { labels } from '../api';
-import logoDark from '../../img/logo/Mainlogo-Dark.png';
+import { labels } from '../../services/api';
+import logoDark from '../../../img/logo/Mainlogo-Dark.png';
 
 const navItems = [
   { label: 'Trang chủ', href: '#dau-trang' },

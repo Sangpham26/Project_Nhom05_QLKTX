@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { storyScenes } from '../landingAssets';
+import { storyScenes } from '../../data/landingAssets';
 import Photo from './Photo';
 import { clamp, observeScroll, useMediaQuery } from './useLandingMotion';
 

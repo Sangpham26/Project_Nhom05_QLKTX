@@ -49,12 +49,12 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { api, money, date, dateTime, labels } from "./api";
-import RoomTypeEditor from "./RoomTypeEditor";
-import RoomGallery, { coverOf } from "./RoomGallery";
-import LandingPage from "./LandingPage";
-import LandingNav from "./landing/LandingNav";
-import ContactPage from "./ContactPage";
+import { api, money, date, dateTime, labels } from "./services/api";
+import RoomTypeEditor from "./components/RoomTypeEditor";
+import RoomGallery, { coverOf } from "./components/RoomGallery";
+import LandingPage from "./pages/LandingPage";
+import LandingNav from "./components/landing/LandingNav";
+import ContactPage from "./pages/ContactPage";
 import logoLight from "../img/logo/Mainlogo-light.png";
 import logoDark from "../img/logo/Mainlogo-Dark.png";
 

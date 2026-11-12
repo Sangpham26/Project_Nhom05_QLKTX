@@ -25,6 +25,7 @@ import {
   Building2,
   Calendar,
   Check,
+  CheckCheck,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -49,6 +50,7 @@ import {
   Search,
   Settings2,
   ShieldCheck,
+  Trash2,
   Users,
   Wallet,
   X,
@@ -1425,6 +1427,280 @@ const navAdmin = [
   { to: "/periods", label: "Kỳ thu", icon: ClipboardList },
   { to: "/pricing", label: "Đơn giá", icon: CircleDollarSign },
 ];
+
+function SwipeableNotificationItem({ item, onOpen, onDelete }) {
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const startXRef = useRef(0);
+  const currentXRef = useRef(0);
+  const isMouseDownRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+
+  // Xử lý vuốt trên màn hình cảm ứng
+  const handleTouchStart = (e) => {
+    hasDraggedRef.current = false;
+    startXRef.current = e.touches[0].clientX;
+    currentXRef.current = e.touches[0].clientX;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const diff = e.touches[0].clientX - startXRef.current;
+    currentXRef.current = e.touches[0].clientX;
+    if (Math.abs(diff) > 4) {
+      hasDraggedRef.current = true;
+    }
+    let clamped = diff;
+    if (Math.abs(diff) > 130) {
+      const sign = diff > 0 ? 1 : -1;
+      clamped = sign * (130 + (Math.abs(diff) - 130) * 0.25);
+    }
+    setDragX(clamped);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    const diff = currentXRef.current - startXRef.current;
+    if (Math.abs(diff) > 75) {
+      setIsExiting(diff > 0 ? "right" : "left");
+      setTimeout(() => {
+        onDelete(item.id);
+      }, 200);
+    } else {
+      setDragX(0);
+    }
+    if (hasDraggedRef.current) {
+      setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 350);
+    }
+  };
+
+  // Xử lý kéo bằng chuột trên máy tính bàn
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isMouseDownRef.current = true;
+    hasDraggedRef.current = false;
+    startXRef.current = e.clientX;
+    currentXRef.current = e.clientX;
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isMouseDownRef.current) return;
+      const diff = e.clientX - startXRef.current;
+      currentXRef.current = e.clientX;
+      if (Math.abs(diff) > 4) {
+        hasDraggedRef.current = true;
+      }
+      let clamped = diff;
+      if (Math.abs(diff) > 130) {
+        const sign = diff > 0 ? 1 : -1;
+        clamped = sign * (130 + (Math.abs(diff) - 130) * 0.25);
+      }
+      setDragX(clamped);
+    };
+
+    const handleMouseUp = () => {
+      if (!isMouseDownRef.current) return;
+      isMouseDownRef.current = false;
+      setIsDragging(false);
+      const diff = currentXRef.current - startXRef.current;
+      if (Math.abs(diff) > 75) {
+        setIsExiting(diff > 0 ? "right" : "left");
+        setTimeout(() => {
+          onDelete(item.id);
+        }, 200);
+      } else {
+        setDragX(0);
+      }
+      if (hasDraggedRef.current) {
+        setTimeout(() => {
+          hasDraggedRef.current = false;
+        }, 350);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [item.id, onDelete]);
+
+  const handleClick = (e) => {
+    if (hasDraggedRef.current || Math.abs(currentXRef.current - startXRef.current) > 4) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    onOpen(item);
+  };
+
+  const isDraggingActive = Math.abs(dragX) > 6 || !!isExiting;
+  const isSwipingLeft = dragX < -15;
+  const isSwipingRight = dragX > 15;
+  const isWillDelete = Math.abs(dragX) > 75;
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        borderBottom: "1px solid rgba(219, 228, 239, 0.4)",
+        background: "transparent",
+        transition: isExiting ? "max-height 0.22s ease, opacity 0.22s ease" : "none",
+        maxHeight: isExiting ? "0px" : "110px",
+        opacity: isExiting ? 0 : 1,
+      }}
+    >
+      {/* Nền hiển thị hành động xóa khi người dùng thực hiện thao tác kéo - cũng trong suốt */}
+      {isDraggingActive && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isSwipingRight || isExiting === "right" ? "flex-start" : "flex-end",
+            padding: "0 18px",
+            background: isWillDelete || isExiting
+              ? "rgba(239, 68, 68, 0.22)"
+              : "rgba(239, 68, 68, 0.12)",
+            color: isWillDelete || isExiting ? "#dc2626" : "#e11d48",
+            fontWeight: 700,
+            fontSize: "12px",
+            gap: "6px",
+            transition: "background 0.15s ease, color 0.15s ease",
+          }}
+        >
+          
+        </div>
+      )}
+
+      {/* Thẻ thông báo di chuyển theo thao tác kéo - giữ độ trong suốt */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
+        onClickCapture={(e) => {
+          if (hasDraggedRef.current || Math.abs(currentXRef.current - startXRef.current) > 4) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        style={{
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          alignItems: "flex-start",
+          width: "100%",
+          gap: "10px",
+          padding: "11px 14px",
+          background: isHovered && !isDragging
+            ? "rgba(255, 255, 255, 0.16)"
+            : (isDragging ? "rgba(255, 255, 255, 0.14)" : "transparent"),
+          color: "var(--text, #172b4d)",
+          cursor: isDragging ? "grabbing" : "pointer",
+          userSelect: "none",
+          transform: isExiting
+            ? `translateX(${isExiting === "right" ? "100%" : "-100%"})`
+            : `translateX(${dragX}px)`,
+          opacity: isExiting ? 0 : 1,
+          transition: isDragging
+            ? "none"
+            : "transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease, background 0.15s ease",
+        }}
+      >
+        <span
+          style={{
+            display: "grid",
+            placeItems: "center",
+            flex: "0 0 28px",
+            height: "28px",
+            borderRadius: "8px",
+            background: item.read ? "#f1f5f9" : "#e0f2fe",
+            color: item.read ? "#64748b" : "#0284c7",
+            marginTop: "1px",
+            flexShrink: 0,
+          }}
+        >
+          <Bell size={15} />
+        </span>
+
+        <div style={{ display: "grid", gap: "2px", minWidth: 0, flex: 1 }}>
+          <strong
+            style={{
+              fontSize: "13px",
+              color: item.read ? "#334155" : "#0f172a",
+              fontWeight: item.read ? 600 : 700,
+            }}
+          >
+            {item.title}
+          </strong>
+          <span
+            style={{
+              fontSize: "12px",
+              color: "#64748b",
+              lineHeight: "1.35",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+            }}
+          >
+            {item.body}
+          </span>
+          <small style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
+            {date(item.createdAt)}
+          </small>
+        </div>
+
+        {!item.read && (
+          <span
+            style={{
+              width: "7px",
+              height: "7px",
+              borderRadius: "50%",
+              background: "#0284c7",
+              flexShrink: 0,
+              marginTop: "5px",
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const DISMISSED_DROPDOWN_KEY = "ktx_dismissed_dropdown_notifications";
+const getDismissedDropdownIds = () => {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_DROPDOWN_KEY) || "[]");
+  } catch {
+    return [];
+  }
+};
+const addDismissedDropdownId = (id) => {
+  try {
+    const list = getDismissedDropdownIds();
+    if (!list.includes(id)) {
+      list.push(id);
+      localStorage.setItem(DISMISSED_DROPDOWN_KEY, JSON.stringify(list));
+    }
+  } catch {}
+};
+
 function Shell({ children }) {
   const { session, logout } = useAuth();
   const navigate = useNavigate();
@@ -1459,16 +1735,18 @@ function Shell({ children }) {
     api("/notifications?limit=500")
       .then((data) => {
         const items = data.items || [];
+        const dismissed = new Set(getDismissedDropdownIds());
+        const dropdownItems = items.filter((item) => !dismissed.has(item.id));
         const totalUnread =
           data.unreadCount ?? items.filter((item) => !item.read).length;
-        const signature = `${totalUnread}|${items.map((item) => `${item.id}:${item.read}`).join("|")}`;
+        const signature = `${totalUnread}|${dropdownItems.map((item) => `${item.id}:${item.read}`).join("|")}`;
         if (
           notificationSignature.current !== null &&
           notificationSignature.current !== signature
         )
           window.dispatchEvent(new Event("inbox-changed"));
         notificationSignature.current = signature;
-        setNotifications(items);
+        setNotifications(dropdownItems);
         setUnreadCount(totalUnread);
         setNotificationsError("");
       })
@@ -1542,6 +1820,24 @@ function Shell({ children }) {
     setPopover(null);
     if (item.targetPath?.startsWith("/") && !item.targetPath.startsWith("//"))
       navigate(item.targetPath);
+  };
+  const markAllNotificationsRead = async () => {
+    if (unreadCount === 0) return;
+    try {
+      await api("/notifications/read-all", { method: "PATCH" });
+      setNotifications((current) =>
+        current.map((entry) => ({ ...entry, read: true })),
+      );
+      setUnreadCount(0);
+      window.dispatchEvent(new Event("notifications-updated"));
+    } catch (error) {
+      setNotificationsError(error.message);
+    }
+  };
+  const deleteNotificationItem = (id) => {
+    // Chỉ xóa khỏi dropdown (không gọi API DELETE, giữ nguyên trên trang Cập nhật dành cho bạn)
+    addDismissedDropdownId(id);
+    setNotifications((current) => current.filter((entry) => entry.id !== id));
   };
   const nav =
     session.user.role === "STUDENT"
@@ -1681,11 +1977,66 @@ function Shell({ children }) {
                   role="dialog"
                   aria-label="Thông báo của bạn"
                 >
-                  <div className="top-popover-head">
-                    <strong>Thông báo</strong>
-                    <span>{unreadCount} chưa đọc</span>
+                  <div
+                    className="top-popover-head"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "13px 15px 11px",
+                      borderBottom: "1px solid rgba(219, 228, 239, 0.45)",
+                      background: "transparent",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                      <strong style={{ fontSize: "14px" }}>Thông báo</strong>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: unreadCount > 0 ? "#0284c7" : "var(--muted)",
+                          fontWeight: unreadCount > 0 ? 600 : 400,
+                        }}
+                      >
+                        {unreadCount > 0 ? `(${unreadCount} chưa đọc)` : "(Đã đọc hết)"}
+                      </span>
+                    </div>
+
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={markAllNotificationsRead}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#0284c7",
+                          fontSize: "12.5px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          padding: "2px 7px",
+                          borderRadius: "6px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          transition: "background 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.16)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                        title="Đánh dấu tất cả thông báo là đã đọc"
+                      >
+                        <CheckCheck size={14} />
+                        Đọc tất cả
+                      </button>
+                    )}
                   </div>
-                  <div className="top-popover-list">
+
+                  <div
+                    className="top-popover-list"
+                    style={{
+                      maxHeight: "295px",
+                      overflowY: "auto",
+                      overflowX: "hidden",
+                    }}
+                  >
                     {notificationsError && (
                       <p className="top-popover-message error">
                         {notificationsError}
@@ -1700,35 +2051,46 @@ function Shell({ children }) {
                       !notifications.length &&
                       !notificationsError && (
                         <p className="top-popover-message">
-                          Chưa có thông báo.
+                          Chưa có thông báo nào.
                         </p>
                       )}
-                    {notifications.slice(0, 6).map((item) => (
-                      <button
-                        type="button"
+                    {notifications.map((item) => (
+                      <SwipeableNotificationItem
                         key={item.id}
-                        className={`popover-notification ${item.read ? "read" : ""}`}
-                        onClick={() => openNotification(item)}
-                      >
-                        <span className="popover-notification-icon">
-                          <Bell size={15} />
-                        </span>
-                        <span className="popover-notification-copy">
-                          <strong>{item.title}</strong>
-                          <span>{item.body}</span>
-                          <small>{date(item.createdAt)}</small>
-                        </span>
-                        {!item.read && <span className="popover-unread-dot" />}
-                      </button>
+                        item={item}
+                        onOpen={openNotification}
+                        onDelete={deleteNotificationItem}
+                      />
                     ))}
                   </div>
-                  <Link
-                    to="/notifications"
-                    className="top-popover-footer"
-                    onClick={() => setPopover(null)}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "10px 14px",
+                      borderTop: "1px solid rgba(219, 228, 239, 0.45)",
+                      background: "transparent",
+                    }}
                   >
-                    Xem tất cả thông báo <ArrowRight size={15} />
-                  </Link>
+                    <Link
+                      to="/notifications"
+                      className="top-popover-footer"
+                      style={{
+                        padding: "2px 10px",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        color: "#0f172a",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                      onClick={() => setPopover(null)}
+                    >
+                      Xem tất cả thông báo <ArrowRight size={14} />
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

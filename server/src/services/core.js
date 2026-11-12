@@ -1589,6 +1589,29 @@ async function readNotification(user, targetId) {
     return item;
   });
 }
+
+async function readAllNotifications(user) {
+  return repo.transaction(scopes.notifications, (db) => {
+    const list = (db.notifications || []).filter(
+      (x) => x.userId === user.id && !x.read,
+    );
+    for (const item of list) {
+      item.read = true;
+    }
+    return { updated: list.length };
+  });
+}
+
+async function deleteNotification(user, targetId) {
+  return repo.transaction(scopes.notifications, (db) => {
+    const index = (db.notifications || []).findIndex((x) => x.id === targetId);
+    if (index === -1) fail("Thông báo không tồn tại.", 404);
+    if (db.notifications[index].userId !== user.id)
+      fail("Không có quyền.", 403);
+    db.notifications.splice(index, 1);
+    return { success: true };
+  });
+}
 // ==============================================================================
 // PHÂN HỆ QUẢN TRỊ TÀI KHOẢN VÀ NGƯỜI DÙNG DÀNH CHO ADMIN
 // ==============================================================================
@@ -2088,6 +2111,8 @@ module.exports = {
   paymentCreate,
   notifications,
   readNotification,
+  readAllNotifications,
+  deleteNotification,
   usersList,
   userResetPassword,
   userSetStatus,

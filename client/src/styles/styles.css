@@ -1538,3 +1538,76 @@ select:focus,
   color: #b65f52;
   font-weight: 700;
 }
+
+@keyframes popoverScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.notifications-popover {
+  position: absolute !important;
+  top: calc(100% + 18px) !important;
+  right: 0 !important;
+  z-index: 45 !important;
+  width: min(390px, calc(100vw - 28px)) !important;
+  border: 0 !important;
+  border-radius: 19px !important;
+  background: rgba(255, 255, 255, 0) !important;
+  backdrop-filter: blur(6px) saturate(1.8) brightness(1) contrast(1.05) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 12px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  transform-origin: top right !important;
+  animation: popoverScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  overflow: hidden !important;
+}
+
+.notifications-popover::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: inherit !important;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.78), inset -1px -1px 0 rgba(255, 255, 255, 0.34) !important;
+  pointer-events: none !important;
+}
+
+.notifications-popover::after {
+  content: none !important;
+}
+
+.notifications-popover > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.notifications-popover .top-popover-head {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(219, 228, 239, 0.45) !important;
+}
+
+.notifications-popover .top-popover-list {
+  background: transparent !important;
+}
+
+.notifications-popover .top-popover-list::-webkit-scrollbar {
+  width: 5px;
+}
+.notifications-popover .top-popover-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.notifications-popover .top-popover-list::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 4px;
+}
+.notifications-popover .top-popover-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}

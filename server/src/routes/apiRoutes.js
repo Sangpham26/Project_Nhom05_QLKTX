@@ -100,11 +100,25 @@ r.get(
   send((req) => s.usersList(req.query)),
 );
 
+// Lấy mã định danh tự động tiếp theo theo vai trò (Sinh viên, Nhân viên, Quản trị viên)
+r.get(
+  "/users/next-code",
+  adminOnly,
+  send((req) => s.getNextCode(req.query.role)),
+);
+
 // Quản trị viên tạo mới tài khoản
 r.post(
   "/users",
   adminOnly,
   send((req) => s.userCreate(req.body)),
+);
+
+// Quản trị viên xóa vĩnh viễn tài khoản (có kiểm tra ràng buộc hoạt động)
+r.delete(
+  "/users/:id",
+  adminOnly,
+  send((req) => s.userDelete(req.params.id, req.user)),
 );
 
 // Quản trị viên đặt lại mật khẩu cho bất kỳ người dùng nào

@@ -21,6 +21,22 @@ export async function api(path, options = {}) {
   }
   const result = await response.json().catch(() => ({}));
   if (!response.ok || !result.success) {
+    if (
+      result.code === "ACCOUNT_LOCKED_OR_DELETED" ||
+      (response.status === 403 &&
+        typeof result.error === "string" &&
+        (result.error.toLowerCase().includes("khóa") ||
+          result.error.toLowerCase().includes("xóa")))
+    ) {
+      localStorage.removeItem("ktx_token");
+      window.dispatchEvent(
+        new CustomEvent("account-revoked", {
+          detail:
+            result.error ||
+            "Tài khoản của bạn đã bị khóa hoặc bị xóa, vui lòng liên hệ admin.",
+        }),
+      );
+    }
     let msg = result.error || "Có lỗi xảy ra.";
     if (typeof msg === "string") {
       msg = msg.replace(/\bstudentCode\b/g, "Mã số sinh viên")

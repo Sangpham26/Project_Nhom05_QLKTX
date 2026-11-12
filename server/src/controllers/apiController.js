@@ -17,12 +17,29 @@ const send = (fn) => (req, res, next) => {
 const auth = async (req, res, next) => {
   try {
     const token = (req.headers.authorization || "").replace(/^Bearer /i, "");
+    if (!token) {
+      return res.status(401).json({ success: false, error: "Vui lòng đăng nhập." });
+    }
     const payload = jwt.verify(token, secret);
-    const current = (await service.me(payload)).user;
-    if (!current.active)
-      return res
-        .status(403)
-        .json({ success: false, error: "Tài khoản đã bị khóa." });
+    let meResult;
+    try {
+      meResult = await service.me(payload);
+    } catch {
+      // Tài khoản không còn tồn tại trong hệ thống (đã bị xóa)
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_LOCKED_OR_DELETED",
+        error: "Tài khoản của bạn đã bị khóa hoặc bị xóa, vui lòng liên hệ admin.",
+      });
+    }
+    const current = meResult?.user;
+    if (!current || !current.active) {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_LOCKED_OR_DELETED",
+        error: "Tài khoản của bạn đã bị khóa hoặc bị xóa, vui lòng liên hệ admin.",
+      });
+    }
     req.user = current;
     next();
   } catch {

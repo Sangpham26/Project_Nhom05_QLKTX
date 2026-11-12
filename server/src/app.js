@@ -54,7 +54,9 @@ app.use((error, req, res, next) => {
         : error.status
           ? error.message
           : "Lỗi máy chủ. Vui lòng thử lại.";
-  res.status(status).json({ success: false, error: message });
+  res
+    .status(status)
+    .json({ success: false, error: message, ...(error.code ? { code: error.code } : {}) });
 });
 
 // Thiết lập cổng hoạt động và khởi động máy chủ API

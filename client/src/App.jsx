@@ -7158,6 +7158,291 @@ function PricingPage() {
 // PHÃ‚N Há»† QUáº¢N TRá»Š TÃ€I KHOáº¢N & NGÆ¯á»œI DÃ™NG TOÃ€N Há»† THá»NG (CHá»ˆ DÃ€NH CHO ADMIN)
 // ==============================================================================
 
+function CreateUserModal({ onClose, onCreated }) {
+  const [role, setRole] = useState("STUDENT");
+  const [code, setCode] = useState("");
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("MALE");
+  const [faculty, setFaculty] = useState("Công nghệ thông tin");
+  const [course, setCourse] = useState("K21");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchCode = async (selectedRole) => {
+    setCodeLoading(true);
+    try {
+      const res = await api(`/users/next-code?role=${selectedRole}`);
+      if (res?.code) {
+        setCode(res.code);
+      }
+    } catch {
+      // nếu lỗi mạng, cho phép người dùng tự điền
+    } finally {
+      setCodeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCode(role);
+  }, [role]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!email.trim()) return setError("Vui lòng nhập email đăng nhập.");
+    if (!fullName.trim()) return setError("Vui lòng nhập họ và tên.");
+    if (!password || password.length < 8)
+      return setError("Mật khẩu cần ít nhất 8 ký tự.");
+    if (password !== confirmPassword)
+      return setError("Mật khẩu xác nhận không khớp.");
+
+    setBusy(true);
+    try {
+      await api("/users", {
+        method: "POST",
+        body: {
+          role,
+          code: code.trim(),
+          fullName: fullName.trim(),
+          email: email.trim(),
+          password,
+          confirmPassword,
+          phone: phone.trim(),
+          ...(role === "STUDENT" ? { gender, faculty, course } : {}),
+        },
+      });
+      onCreated();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Thêm tài khoản người dùng mới" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        <div className="form-grid">
+          <div className="field">
+            <label className="field-label">
+              Vai trò người dùng <span className="field-req">*</span>
+            </label>
+            <select
+              className="field-input"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="STUDENT">Sinh viên</option>
+              <option value="STAFF">Nhân viên KTX</option>
+              <option value="ADMIN">Quản trị viên</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label
+              className="field-label"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span>
+                Mã định danh (MSSV hoặc Mã NV){" "}
+                <span className="field-req">*</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => fetchCode(role)}
+                title="Tải lại mã tiếp theo từ hệ thống"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#2563eb",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  padding: 0,
+                }}
+              >
+                <RotateCw
+                  size={12}
+                  style={
+                    codeLoading
+                      ? {
+                          animation: "spin 1s linear infinite",
+                        }
+                      : {}
+                  }
+                />
+                Làm mới mã
+              </button>
+            </label>
+            <input
+              className="field-input"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder={codeLoading ? "Đang sinh mã..." : "Mã định danh"}
+              required
+            />
+            <span
+              className="field-hint"
+              style={{
+                fontSize: "12px",
+                color: "var(--muted)",
+                marginTop: "4px",
+                display: "block",
+              }}
+            >
+              {role === "STUDENT"
+                ? "Tự động sinh mã tăng dần (dãy số MSSV giống đăng ký)"
+                : role === "STAFF"
+                  ? "Tự động sinh mã bắt đầu bằng NV (ví dụ NV001, NV002...)"
+                  : "Tự động sinh mã bắt đầu bằng AD (ví dụ AD001, AD002...)"}
+            </span>
+          </div>
+
+          <div className="field">
+            <label className="field-label">
+              Họ và tên <span className="field-req">*</span>
+            </label>
+            <input
+              className="field-input"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Nhập họ và tên đầy đủ"
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label className="field-label">
+              Email đăng nhập <span className="field-req">*</span>
+            </label>
+            <input
+              className="field-input"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="ví dụ: user@ktx.edu.vn"
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label className="field-label">
+              Mật khẩu <span className="field-req">*</span>
+            </label>
+            <input
+              className="field-input"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Tối thiểu 8 ký tự"
+              required
+              minLength={8}
+            />
+            <span
+              className="field-hint"
+              style={{ fontSize: "12px", color: "var(--muted)" }}
+            >
+              Tối thiểu 8 ký tự.
+            </span>
+          </div>
+
+          <div className="field">
+            <label className="field-label">
+              Xác nhận mật khẩu <span className="field-req">*</span>
+            </label>
+            <input
+              className="field-input"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Nhập lại mật khẩu"
+              required
+              minLength={8}
+            />
+          </div>
+
+          <div className="field">
+            <label className="field-label">Số điện thoại</label>
+            <input
+              className="field-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Số điện thoại liên hệ"
+            />
+          </div>
+
+          {role === "STUDENT" && (
+            <>
+              <div className="field">
+                <label className="field-label">Giới tính</label>
+                <select
+                  className="field-input"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                >
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label className="field-label">Khoa</label>
+                <input
+                  className="field-input"
+                  value={faculty}
+                  onChange={(e) => setFaculty(e.target.value)}
+                />
+              </div>
+
+              <div className="field">
+                <label className="field-label">Khóa học</label>
+                <input
+                  className="field-input"
+                  value={course}
+                  onChange={(e) => setCourse(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {error && (
+          <div className="inline-error" style={{ marginTop: "12px" }}>
+            {error}
+          </div>
+        )}
+
+        <div className="modal-actions" style={{ marginTop: "20px" }}>
+          <button
+            type="button"
+            className="button button-ghost"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Hủy
+          </button>
+          <button className="button button-primary" disabled={busy}>
+            {busy ? "Đang lưu..." : "Lưu thông tin"}
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function UsersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -7171,6 +7456,9 @@ function UsersPage() {
   const [newModal, setNewModal] = useState(false);
   const [pwdModal, setPwdModal] = useState(null);
   const [statusModal, setStatusModal] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [message, notice, clear] = useNotice();
 
   const roleQuery = roles.length ? `&role=${roles.join(",")}` : "";
@@ -7207,16 +7495,21 @@ function UsersPage() {
     );
   };
 
-  const handleCreateUser = async (v) => {
-    if (v.password !== v.confirmPassword)
-      throw new Error("Mật khẩu xác nhận không khớp.");
-    await api("/users", {
-      method: "POST",
-      body: v,
-    });
-    setNewModal(false);
-    data.load();
-    notice("Đã tạo tài khoản mới thành công.");
+  const handleDeleteUser = async () => {
+    if (!deleteModal) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await api(`/users/${deleteModal.id}`, { method: "DELETE" });
+      const targetEmail = deleteModal.email;
+      setDeleteModal(null);
+      data.load();
+      notice(`Đã xóa vĩnh viễn tài khoản ${targetEmail} thành công.`);
+    } catch (err) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleteBusy(false);
+    }
   };
 
   return (
@@ -7493,6 +7786,23 @@ function UsersPage() {
                       >
                         {x.active ? "Khóa" : "Kích hoạt"}
                       </button>
+                      <button
+                        type="button"
+                        className="button button-secondary button-small"
+                        onClick={() => {
+                          setDeleteModal(x);
+                          setDeleteError("");
+                        }}
+                        style={{
+                          fontSize: "12px",
+                          padding: "4px 10px",
+                          color: "#dc2626",
+                          borderColor: "rgba(220, 38, 38, 0.25)",
+                        }}
+                        title="Xóa tài khoản vĩnh viễn"
+                      >
+                        Xóa
+                      </button>
                     </div>
                   ),
                 },
@@ -7539,85 +7849,106 @@ function UsersPage() {
       {statusModal && (
         <Confirm
           title={statusModal.active ? "Khóa tài khoản" : "Kích hoạt lại tài khoản"}
-          detail={`Bạn có chắc chắn muốn ${statusModal.active ? "khóa" : "kích hoạt lại"} tài khoản ${statusModal.fullName} (${statusModal.email}) không?`}
+          detail={`Bạn có chắc chắn muốn ${statusModal.active ? "khóa" : "kích hoạt lại"} tài khoản ${statusModal.fullName} (${statusModal.email}) không? Khi bị khóa, người dùng sẽ bị đăng xuất ngay lập tức.`}
           onConfirm={handleToggleStatus}
           onClose={() => setStatusModal(null)}
         />
       )}
 
+      {/* Modal Xóa tài khoản vĩnh viễn (có kiểm tra ràng buộc an toàn) */}
+      {deleteModal && (
+        <Modal
+          title="Xác nhận xóa tài khoản"
+          onClose={() => {
+            if (!deleteBusy) {
+              setDeleteModal(null);
+              setDeleteError("");
+            }
+          }}
+        >
+          <div style={{ marginBottom: "16px" }}>
+            <p
+              style={{
+                fontSize: "14.5px",
+                color: "var(--text)",
+                lineHeight: "1.6",
+                margin: "0 0 12px",
+              }}
+            >
+              Bạn có chắc chắn muốn xóa tài khoản{" "}
+              <strong>{deleteModal.fullName}</strong> ({deleteModal.email}) - Mã:{" "}
+              <strong>{deleteModal.code}</strong> không?
+            </p>
+            <div
+              style={{
+                background: "#fff1f2",
+                border: "1px solid #fecdd3",
+                borderRadius: "8px",
+                padding: "12px 14px",
+                color: "#9f1239",
+                fontSize: "13px",
+                lineHeight: "1.55",
+              }}
+            >
+              <strong>Kiểm tra an toàn dữ liệu:</strong>
+              <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                <li>
+                  Hệ thống tự động kiểm tra toàn bộ hoạt động (hợp đồng lưu trú phòng, hóa đơn chưa thanh toán, hồ sơ đăng ký phòng chờ duyệt, yêu cầu hỗ trợ).
+                </li>
+                <li>
+                  Nếu còn ràng buộc nghiệp vụ, hệ thống sẽ từ chối xóa để tránh phát sinh lỗi dữ liệu mồ côi.
+                </li>
+                <li>
+                  Nếu xóa thành công, tài khoản sẽ bị đăng xuất ngay lập tức nếu đang đăng nhập.
+                </li>
+              </ul>
+            </div>
+            {deleteError && (
+              <div className="inline-error" style={{ marginTop: "12px" }}>
+                {deleteError}
+              </div>
+            )}
+          </div>
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="button button-ghost"
+              onClick={() => {
+                setDeleteModal(null);
+                setDeleteError("");
+              }}
+              disabled={deleteBusy}
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              className="button button-danger"
+              style={{
+                background: "#dc2626",
+                color: "#ffffff",
+                borderColor: "#dc2626",
+              }}
+              disabled={deleteBusy}
+              onClick={handleDeleteUser}
+            >
+              <Trash2 size={15} />
+              {deleteBusy ? "Đang kiểm tra và xóa..." : "Xác nhận xóa"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {/* Modal Thêm tài khoản mới */}
       {newModal && (
-        <Modal
-          title="Thêm tài khoản người dùng mới"
+        <CreateUserModal
           onClose={() => setNewModal(false)}
-        >
-          <Form
-            fields={(values) => [
-              {
-                label: "Vai trò người dùng",
-                name: "role",
-                required: true,
-                options: [
-                  { value: "STUDENT", label: "Sinh viên" },
-                  { value: "STAFF", label: "Nhân viên KTX" },
-                  { value: "ADMIN", label: "Quản trị viên" },
-                ],
-              },
-              {
-                label: "Mã định danh (MSSV hoặc Mã NV)",
-                name: "code",
-                required: true,
-              },
-              { label: "Họ và tên", name: "fullName", required: true },
-              {
-                label: "Email đăng nhập",
-                name: "email",
-                type: "email",
-                required: true,
-              },
-              {
-                label: "Mật khẩu",
-                name: "password",
-                type: "password",
-                required: true,
-                minLength: 8,
-                maxLength: 72,
-                hint: "Tối thiểu 8 ký tự.",
-              },
-              {
-                label: "Xác nhận mật khẩu",
-                name: "confirmPassword",
-                type: "password",
-                required: true,
-                minLength: 8,
-                maxLength: 72,
-              },
-              { label: "Số điện thoại", name: "phone" },
-              ...(values.role === "STUDENT"
-                ? [
-                    {
-                      label: "Giới tính",
-                      name: "gender",
-                      options: [
-                        { value: "MALE", label: "Nam" },
-                        { value: "FEMALE", label: "Nữ" },
-                      ],
-                    },
-                    { label: "Khoa", name: "faculty" },
-                    { label: "Khóa học", name: "course" },
-                  ]
-                : []),
-            ]}
-            initial={{
-              role: "STUDENT",
-              gender: "MALE",
-              faculty: "Công nghệ thông tin",
-              course: "K21",
-            }}
-            onSave={handleCreateUser}
-            onCancel={() => setNewModal(false)}
-          />
-        </Modal>
+          onCreated={() => {
+            setNewModal(false);
+            data.load();
+            notice("Đã tạo tài khoản mới thành công.");
+          }}
+        />
       )}
 
       <Toast message={message} onClose={() => clear(null)} />
@@ -7904,6 +8235,21 @@ function ProfilePage() {
 export default function App() {
   const [session, setSession] = useState(null),
     [ready, setReady] = useState(false);
+  const [revokedNotice, setRevokedNotice] = useState(null);
+
+  useEffect(() => {
+    const handleRevoked = (e) => {
+      localStorage.removeItem("ktx_token");
+      setSession(null);
+      setRevokedNotice(
+        e.detail ||
+          "Tài khoản của bạn đã bị khóa hoặc bị xóa, vui lòng liên hệ admin.",
+      );
+    };
+    window.addEventListener("account-revoked", handleRevoked);
+    return () => window.removeEventListener("account-revoked", handleRevoked);
+  }, []);
+
   useEffect(() => {
     if (localStorage.getItem("ktx_token"))
       api("/auth/me")
@@ -8122,6 +8468,89 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+
+      {/* Thông báo tức thời khi tài khoản bị khóa hoặc bị xóa */}
+      {revokedNotice && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.72)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 99999,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "32px 28px",
+              maxWidth: "460px",
+              width: "100%",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                width: "58px",
+                height: "58px",
+                borderRadius: "50%",
+                background: "#fee2e2",
+                color: "#dc2626",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+              }}
+            >
+              <ShieldCheck size={30} />
+            </div>
+            <h3
+              style={{
+                fontSize: "18.5px",
+                fontWeight: 700,
+                color: "#0f172a",
+                marginBottom: "10px",
+              }}
+            >
+              Thông báo tài khoản
+            </h3>
+            <p
+              style={{
+                fontSize: "14.5px",
+                color: "#475569",
+                lineHeight: "1.6",
+                marginBottom: "24px",
+              }}
+            >
+              {revokedNotice}
+            </p>
+            <button
+              type="button"
+              className="button button-primary"
+              style={{
+                width: "100%",
+                justifyContent: "center",
+                padding: "12px",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                setRevokedNotice(null);
+                window.location.href = "/";
+              }}
+            >
+              Đã hiểu và quay về trang chủ
+            </button>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }

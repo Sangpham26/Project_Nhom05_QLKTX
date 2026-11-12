@@ -7,6 +7,16 @@ const repo = require("../repositories");
 const scopes = {
   catalog: ["buildings", "roomTypes", "rooms", "stays"],
   account: ["users", "students", "staff", "activityLogs"],
+  userDelete: [
+    "users",
+    "students",
+    "staff",
+    "stays",
+    "invoices",
+    "applications",
+    "requests",
+    "activityLogs",
+  ],
   catalogWrite: [
     "buildings",
     "roomTypes",
@@ -219,6 +229,34 @@ const generateStudentCode = (db) => {
     nextNum++;
   }
   return String(nextNum);
+};
+
+const generatePrefixCode = (items, field, prefix, minDigits = 3) => {
+  let maxNum = 0;
+  const regex = new RegExp(`^${prefix}(\\d+)$`, "i");
+  for (const item of items || []) {
+    const val = String(item[field] || "").trim();
+    const match = val.match(regex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  }
+  let nextNum = maxNum + 1;
+  const padLen = Math.max(minDigits, String(nextNum).length);
+  let code = `${prefix.toUpperCase()}${String(nextNum).padStart(padLen, "0")}`;
+  while (
+    (items || []).some(
+      (item) =>
+        String(item[field] || "").trim().toUpperCase() === code.toUpperCase(),
+    )
+  ) {
+    nextNum++;
+    code = `${prefix.toUpperCase()}${String(nextNum).padStart(padLen, "0")}`;
+  }
+  return code;
 };
 
 const nextSequentialId = (db, collection, prefix) => {
@@ -1708,6 +1746,21 @@ async function userSetStatus(targetUserId, active) {
   });
 }
 
+// Lấy mã định danh khả dụng tiếp theo theo vai trò (Sinh viên, Nhân viên, Quản trị viên)
+async function getNextCode(role) {
+  const db = await repo.read(scopes.account);
+  if (role === "STUDENT") {
+    return { code: generateStudentCode(db) };
+  }
+  if (role === "STAFF") {
+    return { code: generatePrefixCode(db.staff, "staffCode", "NV", 3) };
+  }
+  if (role === "ADMIN") {
+    return { code: generatePrefixCode(db.staff, "staffCode", "AD", 3) };
+  }
+  fail("Vai trò không hợp lệ.");
+}
+
 // Tạo tài khoản mới từ phía Quản trị viên (Admin Create User)
 async function userCreate(body) {
   const email = String(required(body.email, "email")).trim().toLowerCase();
@@ -1730,7 +1783,7 @@ async function userCreate(body) {
         ? nextSequentialId(db, "users", "u-student-")
         : role === "STAFF"
           ? nextSequentialId(db, "users", "u-staff-")
-          : id();
+          : nextSequentialId(db, "users", "u-admin-");
     const user = {
       id: userId,
       email,
@@ -1770,8 +1823,11 @@ async function userCreate(body) {
       db.students.push(studentItem);
       return { ...studentItem, user: publicUser(user) };
     } else {
+      const defaultPrefix = role === "ADMIN" ? "AD" : "NV";
       const staffCode = String(
-        required(body.code || body.staffCode, "mã nhân viên"),
+        body.code ||
+          body.staffCode ||
+          generatePrefixCode(db.staff, "staffCode", defaultPrefix, 3),
       ).trim();
       unique(db, "staff", "staffCode", staffCode);
       const staffItem = {
@@ -1784,6 +1840,148 @@ async function userCreate(body) {
       db.staff.push(staffItem);
       return { ...staffItem, user: publicUser(user) };
     }
+  });
+}
+
+// Xóa vĩnh viễn tài khoản người dùng và kiểm tra chặt chẽ toàn bộ ràng buộc nghiệp vụ (Admin Delete User)
+async function userDelete(targetUserId, actor) {
+  return repo.transaction(scopes.userDelete, (db) => {
+    const user = one(db, "users", targetUserId, "Tài khoản");
+
+    // 1. Không cho phép tự xóa tài khoản của chính mình đang đăng nhập
+    if (actor && user.id === actor.id) {
+      fail("Không thể xóa tài khoản của chính bạn đang đăng nhập.");
+    }
+
+    // 2. Không cho phép xóa Quản trị viên duy nhất trong hệ thống
+    if (user.role === "ADMIN") {
+      const remainingAdmins = db.users.filter(
+        (x) => x.role === "ADMIN" && x.id !== user.id,
+      ).length;
+      if (remainingAdmins < 1) {
+        fail("Không thể xóa quản trị viên duy nhất trong hệ thống.");
+      }
+    }
+
+    // 3. Kiểm tra ràng buộc đối với Sinh viên (STUDENT)
+    if (user.role === "STUDENT") {
+      const studentProfile = db.students.find((s) => s.userId === user.id);
+      if (studentProfile) {
+        // Kiểm tra hợp đồng lưu trú phòng (stays)
+        const hasActiveStay = (db.stays || []).some(
+          (s) => s.studentId === studentProfile.id && s.status === "ACTIVE",
+        );
+        if (hasActiveStay) {
+          fail(
+            "Không thể xóa: Sinh viên hiện đang lưu trú tại phòng KTX. Vui lòng làm thủ tục trả phòng trước khi xóa tài khoản.",
+          );
+        }
+
+        // Kiểm tra hóa đơn chưa thanh toán hoặc công nợ (invoices)
+        const hasUnpaidInvoice = (db.invoices || []).some(
+          (inv) =>
+            inv.studentId === studentProfile.id &&
+            !["PAID", "CANCELLED"].includes(inv.status),
+        );
+        if (hasUnpaidInvoice) {
+          fail(
+            "Không thể xóa: Sinh viên còn hóa đơn chưa thanh toán hoặc công nợ tồn đọng.",
+          );
+        }
+
+        // Kiểm tra hồ sơ đăng ký phòng chờ duyệt (applications)
+        const hasPendingApp = (db.applications || []).some(
+          (app) =>
+            app.studentId === studentProfile.id &&
+            ["PENDING", "REVIEWING", "NEEDS_INFO"].includes(app.status),
+        );
+        if (hasPendingApp) {
+          fail(
+            "Không thể xóa: Sinh viên đang có hồ sơ đăng ký phòng đang trong quá trình xét duyệt.",
+          );
+        }
+
+        // Kiểm tra yêu cầu hỗ trợ chưa giải quyết (requests)
+        const hasPendingReq = (db.requests || []).some(
+          (req) =>
+            req.studentId === studentProfile.id &&
+            !["RESOLVED", "CLOSED", "REJECTED"].includes(req.status),
+        );
+        if (hasPendingReq) {
+          fail(
+            "Không thể xóa: Sinh viên đang có yêu cầu hỗ trợ hoặc báo hỏng chưa hoàn thành.",
+          );
+        }
+
+        // Xóa hồ sơ sinh viên
+        const studentIndex = db.students.findIndex(
+          (s) => s.id === studentProfile.id,
+        );
+        if (studentIndex !== -1) {
+          db.students.splice(studentIndex, 1);
+        }
+      }
+    }
+
+    // 4. Kiểm tra ràng buộc đối với Nhân viên (STAFF)
+    if (user.role === "STAFF") {
+      const staffProfile = db.staff.find((st) => st.userId === user.id);
+      if (staffProfile) {
+        // Kiểm tra phân công xử lý yêu cầu chưa hoàn thành (requests)
+        const hasAssignedReq = (db.requests || []).some(
+          (req) =>
+            req.assignedTo === staffProfile.id &&
+            !["RESOLVED", "CLOSED", "REJECTED"].includes(req.status),
+        );
+        if (hasAssignedReq) {
+          fail(
+            "Không thể xóa: Nhân viên đang được phân công xử lý các yêu cầu hỗ trợ chưa hoàn thành.",
+          );
+        }
+
+        // Xóa hồ sơ nhân viên
+        const staffIndex = db.staff.findIndex((st) => st.id === staffProfile.id);
+        if (staffIndex !== -1) {
+          db.staff.splice(staffIndex, 1);
+        }
+      }
+    }
+
+    // 5. Nếu là Quản trị viên (ADMIN), xóa profile trong db.staff nếu có
+    if (user.role === "ADMIN") {
+      const adminStaffProfiles = (db.staff || []).filter(
+        (st) => st.userId === user.id,
+      );
+      for (const st of adminStaffProfiles) {
+        const idx = db.staff.findIndex((x) => x.id === st.id);
+        if (idx !== -1) db.staff.splice(idx, 1);
+      }
+    }
+
+    // 6. Xóa tài khoản khỏi danh sách users
+    const userIndex = db.users.findIndex((u) => u.id === user.id);
+    if (userIndex !== -1) {
+      db.users.splice(userIndex, 1);
+    }
+
+    // 7. Ghi nhật ký hoạt động hệ thống
+    logEvent(db, {
+      actorId: actor?.id || "u-admin-1",
+      actorName: actor?.name || actor?.fullName || "Quản trị viên",
+      actorRole: "ADMIN",
+      action: "XÓA TÀI KHOẢN",
+      title: `Quản trị viên đã xóa vĩnh viễn tài khoản ${user.email}`,
+      body: `Đã xóa tài khoản (${user.role === "STUDENT" ? "Sinh viên" : user.role === "STAFF" ? "Nhân viên" : "Quản trị viên"}) và các hồ sơ liên quan sau khi xác minh không còn ràng buộc nghiệp vụ.`,
+      target: user.email,
+      tone: "rose",
+    });
+
+    return {
+      success: true,
+      id: user.id,
+      email: user.email,
+      message: `Đã xóa tài khoản ${user.email} thành công.`,
+    };
   });
 }
 
@@ -2117,6 +2315,8 @@ module.exports = {
   userResetPassword,
   userSetStatus,
   userCreate,
+  userDelete,
+  getNextCode,
   staffList,
   staffWrite,
   students,

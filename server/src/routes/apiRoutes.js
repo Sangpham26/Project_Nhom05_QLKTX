@@ -320,10 +320,22 @@ r.get(
   send((req) => s.notifications(req.user, req.query)),
 );
 
+// Đánh dấu tất cả thông báo đã đọc
+r.patch(
+  "/notifications/read-all",
+  send((req) => s.readAllNotifications(req.user)),
+);
+
 // Đánh dấu thông báo đã đọc
 r.patch(
   "/notifications/:id/read",
   send((req) => s.readNotification(req.user, req.params.id)),
+);
+
+// Xóa thông báo (kéo sang trái/phải để xóa)
+r.delete(
+  "/notifications/:id",
+  send((req) => s.deleteNotification(req.user, req.params.id)),
 );
 
 // ==============================================================================

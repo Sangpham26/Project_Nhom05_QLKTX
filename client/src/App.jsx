@@ -2127,7 +2127,7 @@ function Shell({ children }) {
                     onClick={() => setPopover(null)}
                   >
                     <Users size={17} />
-                    Hồ sơ cá nhân
+                    Hồ sơ 
                   </Link>
                   <button
                     type="button"

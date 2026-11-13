@@ -70,7 +70,7 @@
   background: rgba(255, 255, 255, 0.8);
   transform: translateY(-1px);
 }
-
+ 
 /* --- Tự động thích ứng khi gặp nền tối (Light text / Light logo on dark background) --- */
 .lp-header.is-dark .lp-brand strong {
   color: #ffffff;
@@ -209,6 +209,15 @@
   --lp-glass-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85), inset -1px -1px 0 rgba(213, 210, 198, 0.15), 0 20px 48px rgba(15, 48, 95, 0.16);
 }
 .lp-header, .lp-header.is-scrolled { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; }
+ 
+/* ------------------------------------------------------------------
+   NAV: lớp kính chuyển sang ::before.
+   Nếu .lp-nav tự có backdrop-filter thì nó thành "backdrop root" và
+   dropdown bên trong không blur được nền ảnh phía sau (bị trong suốt).
+   contain: layout giữ nguyên hành vi định vị của phần tử con
+   (absolute/fixed) như khi .lp-nav còn backdrop-filter, nên dropdown
+   vẫn mở đúng chỗ.
+------------------------------------------------------------------- */
 .lp-nav {
   position: relative;
   display: flex;
@@ -216,14 +225,7 @@
   transform-origin: center top;
   flex-shrink: 0;
   margin-inline: 0 !important;
-  background: rgba(255, 255, 255, 0);
-  backdrop-filter: blur(6px) saturate(1.8) brightness(1) contrast(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
-    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
-    inset 0 0 12px rgba(255, 255, 255, 0.2),
-    0 8px 32px rgba(0, 0, 0, 0.2);
+  contain: layout;
   transition: width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
               max-width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
               margin-top 0.38s cubic-bezier(0.16, 1, 0.3, 1),
@@ -231,9 +233,26 @@
               border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1),
               height 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
+.lp-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0);
+  backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 12px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+ 
 .lp-nav > * { position: relative; z-index: 1; }
-
+ 
 /* Trạng thái 1: Khi ở đầu trang - Tràn full bề ngang, khít 100% với banner (height: 78px) */
 .lp-header:not(.is-scrolled) .lp-nav {
   width: 100% !important;
@@ -245,7 +264,7 @@
   padding: 0 clamp(24px, 4.5vw, 64px);
   transform: none;
 }
-
+ 
 /* Trạng thái 2: Khi kéo xuống - Thu lại dạng đảo nổi bo góc như hiện tại */
 .lp-header.is-scrolled .lp-nav {
   width: min(var(--dl-content-width, 1320px), calc(100% - var(--dl-gutter, 32px) * 2)) !important;
@@ -257,7 +276,7 @@
   padding: 0 20px;
   transform: none;
 }
-
+ 
 .lp-menu-toggle, .lp-mobile-menu {
   background: var(--lp-glass);
   box-shadow: var(--lp-glass-shadow);
@@ -278,12 +297,36 @@
 @media (max-width: 480px) {
   .lp-mobile-menu { width: calc(100% - 20px) !important; }
 }
-
+ 
 /* Signed-in visitors use the same avatar and glass account menu as management. */
 .lp-account-wrap { display: flex; align-items: center; flex: 0 0 auto; }
 .lp-account-wrap .top-avatar { font-size: var(--font-label); font-weight: 700; }
-.lp-account-wrap .account-popover { top: calc(100% + 18px); }
-.lp-account-wrap .account-popover::after { background: rgba(244,240,232,.78); }
+ 
+/* Dropdown tài khoản: kính giống thanh header.
+   Không ghi đè position/right/left để giữ nguyên cách mở của CSS gốc. */
+.lp-account-wrap .account-popover {
+  top: calc(100% + 18px);
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 12px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+}
+.lp-account-wrap .account-popover::after { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+ 
+/* Khi header đang ở nền tối: chữ sáng + nền hơi tối để dễ đọc */
+.lp-header.is-dark .lp-account-wrap .account-popover {
+  background: rgba(20, 24, 22, 0.35);
+}
+.lp-header.is-dark .lp-account-wrap .account-popover,
+.lp-header.is-dark .lp-account-wrap .account-popover * {
+  color: #ffffff;
+}
+ 
 @media (max-width: 959px) {
   .lp-nav.has-session { gap: 12px; }
   .lp-nav.has-session .lp-brand { flex: 1; min-width: 0; }
@@ -291,4 +334,75 @@
   .lp-nav.has-session .lp-brand > span:last-child { min-width: 0; }
   .lp-nav.has-session .lp-brand small { letter-spacing: .06em; }
   .lp-nav.has-session .lp-menu-toggle { flex: 0 0 44px; margin-left: 0; }
+}
+ /* ===== Chuyển màu sáng/tối mượt hơn ===== */
+.ktx-landing {
+  --lp-theme-speed: .6s;                          /* chỉnh ở đây: .4s nhanh, .8s chậm */
+  --lp-theme-ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Logo + chữ thương hiệu */
+.lp-brand-logo {
+  transition: opacity var(--lp-theme-speed) var(--lp-theme-ease);
+}
+.lp-brand strong,
+.lp-brand small {
+  transition: color var(--lp-theme-speed) var(--lp-theme-ease);
+}
+
+/* Menu desktop */
+.lp-nav-desktop a {
+  transition: color var(--lp-theme-speed) var(--lp-theme-ease);
+}
+
+/* Nút tài khoản (chưa đăng nhập) */
+.lp-nav-account {
+  transition:
+    background-color var(--lp-theme-speed) var(--lp-theme-ease),
+    color var(--lp-theme-speed) var(--lp-theme-ease),
+    box-shadow var(--lp-theme-speed) var(--lp-theme-ease),
+    transform .2s ease;
+}
+
+/* Nút hamburger */
+.lp-menu-toggle {
+  transition:
+    background-color var(--lp-theme-speed) var(--lp-theme-ease),
+    color var(--lp-theme-speed) var(--lp-theme-ease),
+    border-color var(--lp-theme-speed) var(--lp-theme-ease),
+    box-shadow var(--lp-theme-speed) var(--lp-theme-ease),
+    transform .18s ease;
+}
+
+/* Avatar */
+.lp-account-wrap .top-avatar {
+  transition:
+    background-color var(--lp-theme-speed) var(--lp-theme-ease),
+    color var(--lp-theme-speed) var(--lp-theme-ease),
+    box-shadow var(--lp-theme-speed) var(--lp-theme-ease);
+}
+
+/* Dropdown tài khoản */
+.lp-account-wrap .account-popover {
+  transition: background-color var(--lp-theme-speed) var(--lp-theme-ease);
+}
+.lp-account-wrap .account-popover * {
+  transition: color var(--lp-theme-speed) var(--lp-theme-ease);
+}
+
+/* Menu mobile */
+.lp-mobile-menu {
+  transition:
+    background-color var(--lp-theme-speed) var(--lp-theme-ease),
+    border-color var(--lp-theme-speed) var(--lp-theme-ease),
+    box-shadow var(--lp-theme-speed) var(--lp-theme-ease);
+}
+.lp-mobile-menu a {
+  transition:
+    background-color .15s ease,
+    color var(--lp-theme-speed) var(--lp-theme-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ktx-landing { --lp-theme-speed: .01ms; }
 }

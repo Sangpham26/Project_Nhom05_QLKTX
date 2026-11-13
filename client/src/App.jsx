@@ -2829,9 +2829,9 @@ function StayRequestModal({
             <div className="duration-pills">
               {[
                 { m: 1, text: "1 tháng" },
-                { m: 3, text: "3 tháng (Chuẩn)" },
-                { m: 6, text: "6 tháng (1 học kỳ)" },
-                { m: 12, text: "12 tháng (1 năm)" },
+                { m: 3, text: "3 tháng" },
+                { m: 6, text: "6 tháng" },
+                { m: 12, text: "12 tháng" },
               ].map((opt) => (
                 <button
                   key={opt.m}
@@ -2997,6 +2997,8 @@ function StayRequestModal({
 function Dashboard() {
   const { session } = useAuth();
   const role = session.user.role;
+  const navigate = useNavigate();
+  const [message, notice, clear] = useNotice();
   const [exportOpen, setExportOpen] = useState(false);
   const [stayModal, setStayModal] = useState(null);
   const apps = useLoad("/applications?limit=20"),
@@ -3375,9 +3377,11 @@ function Dashboard() {
               initialType={stayModal.type}
               onClose={() => setStayModal(null)}
               onSuccess={() => {
+                const reqTypeLabel = stayModal.type === "EXTEND" ? "gia hạn lưu trú" : "trả phòng KTX";
                 setStayModal(null);
                 stays.load();
                 requests.load();
+                notice(`Đã gửi yêu cầu ${reqTypeLabel} thành công! Ban quản lý sẽ sớm xử lý yêu cầu của bạn.`);
               }}
             />
           )}
@@ -3595,15 +3599,9 @@ function Dashboard() {
                   {pendingApps.map((x) => (
                     <div
                       key={x.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "11px 14px",
-                        borderRadius: "10px",
-                        border: "1px solid var(--border)",
-                        background: "var(--surface)",
-                      }}
+                      className="pending-queue-item"
+                      onClick={() => navigate(`/applications/${x.id}`)}
+                      title="Nhấp để chuyển thẳng đến duyệt hồ sơ này"
                     >
                       <div>
                         <strong>{x.student?.fullName || "Sinh viên"}</strong>
@@ -3623,18 +3621,14 @@ function Dashboard() {
                   {pendingRequests.map((r) => (
                     <div
                       key={r.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "11px 14px",
-                        borderRadius: "10px",
-                        border: "1px solid var(--border)",
-                        background: "var(--surface)",
-                      }}
+                      className="pending-queue-item"
+                      onClick={() => navigate("/requests", { state: { openRequest: r } })}
+                      title="Nhấp để mở cửa sổ xử lý yêu cầu này ngay lập tức"
                     >
                       <div>
-                        <strong>Yêu cầu {labels[r.type] || r.type}</strong>
+                        <strong>
+                          Yêu cầu {labels[r.type] || r.type} · {r.student?.fullName || "Sinh viên"}
+                        </strong>
                         <div
                           style={{
                             fontSize: "12px",
@@ -3819,6 +3813,7 @@ function Dashboard() {
       )}
 
       {exportOpen && <ExportLogsModal onClose={() => setExportOpen(false)} />}
+      <Toast message={message} onClose={() => clear(null)} />
     </>
   );
 }
@@ -5088,6 +5083,8 @@ function StaysPage() {
 }
 function RequestsPage() {
   const { session } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const own = session.user.role === "STUDENT",
     stays = useLoad("/stays?limit=100");
   const [page, setPage] = useState(1),
@@ -5096,6 +5093,14 @@ function RequestsPage() {
     [form, setForm] = useState(false),
     [decision, setDecision] = useState(null),
     [message, notice, clear] = useNotice();
+
+  useEffect(() => {
+    if (location.state?.openRequest) {
+      setDecision(location.state.openRequest);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
+
   const data = useLoad(
     `/requests?page=${page}&search=${encodeURIComponent(search)}&status=${status}`,
   );
@@ -5248,7 +5253,24 @@ function RequestsPage() {
                       </span>
                     ),
                 },
-                { key: "reason", label: "Lý do" },
+                {
+                  key: "reason",
+                  label: "Lý do",
+                  render: (x) => (
+                    <div
+                      title={x.reason}
+                      style={{
+                        maxWidth: "180px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {x.reason || "—"}
+                    </div>
+                  ),
+                },
                 {
                   key: "status",
                   label: "Trạng thái",
@@ -5312,6 +5334,32 @@ function RequestsPage() {
             {decision.student?.fullName} · {decision.room?.code} · Ngày mong
             muốn {date(decision.desiredDate)}
           </p>
+          <div
+            style={{
+              margin: "10px 0 16px 0",
+              padding: "12px 14px",
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              fontSize: "13.5px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#64748b",
+                marginBottom: "4px",
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+              }}
+            >
+              Lý do gửi yêu cầu của sinh viên:
+            </div>
+            <div style={{ color: "#1e293b", lineHeight: 1.5, fontWeight: 500 }}>
+              "{decision.reason || "Không ghi rõ lý do."}"
+            </div>
+          </div>
           {decision.overdueDays > 0 && (
             <div
               style={{
@@ -6060,7 +6108,24 @@ function TransfersPage() {
                   label: "Ngày chuyển",
                   render: (x) => date(x.date),
                 },
-                { key: "reason", label: "Lý do" },
+                {
+                  key: "reason",
+                  label: "Lý do",
+                  render: (x) => (
+                    <div
+                      title={x.reason}
+                      style={{
+                        maxWidth: "180px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {x.reason || "—"}
+                    </div>
+                  ),
+                },
               ]}
             />
             <Pager data={data.data} page={page} setPage={setPage} />

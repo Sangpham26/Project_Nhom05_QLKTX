@@ -1611,3 +1611,406 @@ select:focus,
 .notifications-popover .top-popover-list::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.6);
 }
+
+/* ==============================================================================
+   NGHIỆP VỤ CẢNH BÁO HẾT HẠN & GIA HẠN/TRẢ PHÒNG LƯU TRÚ (NHÓM 05)
+   ============================================================================== */
+
+.stay-deadline-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  animation: fadeInDown 0.3s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Kiểu cảnh báo quá hạn tông màu #222222 sang trọng, lịch sự */
+.stay-deadline-alert.stay-alert-dark,
+.stay-deadline-alert.stay-alert-purple {
+  background: #ffffff;
+  border: 1.5px solid #222222;
+  box-shadow: 0 4px 16px rgba(34, 34, 34, 0.07);
+}
+.stay-deadline-alert.stay-alert-dark .stay-alert-title,
+.stay-deadline-alert.stay-alert-purple .stay-alert-title {
+  color: #222222;
+}
+.stay-deadline-alert.stay-alert-dark .stay-alert-desc,
+.stay-deadline-alert.stay-alert-purple .stay-alert-desc {
+  color: #374151;
+}
+
+.stay-deadline-alert.stay-alert-red {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1.5px solid #f87171;
+}
+.stay-deadline-alert.stay-alert-red .stay-alert-title {
+  color: #b91c1c;
+}
+.stay-deadline-alert.stay-alert-red .stay-alert-desc {
+  color: #dc2626;
+}
+
+.stay-deadline-alert.stay-alert-amber {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #fcd34d;
+}
+.stay-deadline-alert.stay-alert-amber .stay-alert-title {
+  color: #92400e;
+}
+.stay-deadline-alert.stay-alert-amber .stay-alert-desc {
+  color: #b45309;
+}
+
+/* Căn giữa biểu tượng cảnh báo với nội dung chữ */
+.stay-alert-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+}
+
+.stay-alert-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+/* Biểu tượng màu đỏ theo yêu cầu */
+.stay-alert-dark .stay-alert-icon,
+.stay-alert-purple .stay-alert-icon {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.stay-alert-red .stay-alert-icon {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.stay-alert-amber .stay-alert-icon {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.stay-alert-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stay-alert-desc {
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.stay-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Nút bấm tông màu #222222 */
+.stay-btn-dark,
+.stay-btn-purple {
+  background: #222222;
+  color: #ffffff !important;
+  border: 1.5px solid #222222;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+.stay-btn-dark:hover,
+.stay-btn-purple:hover {
+  background: #000000;
+  border-color: #000000;
+}
+
+.stay-btn-dark-outline,
+.stay-btn-purple-outline {
+  background: #ffffff;
+  color: #222222 !important;
+  border: 1.5px solid #222222;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.stay-btn-dark-outline:hover,
+.stay-btn-purple-outline:hover {
+  background: #f4f4f5;
+}
+
+.stay-btn-red {
+  background: #dc2626;
+  color: #ffffff !important;
+  border: none;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+  white-space: nowrap;
+}
+.stay-btn-red:hover {
+  background: #b91c1c;
+}
+
+.stay-btn-red-outline {
+  background: #ffffff;
+  color: #dc2626 !important;
+  border: 1.5px solid #f87171;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.stay-btn-red-outline:hover {
+  background: #fef2f2;
+}
+
+.stay-btn-amber {
+  background: #d97706;
+  color: #ffffff !important;
+  border: none;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);
+  white-space: nowrap;
+}
+.stay-btn-amber:hover {
+  background: #b45309;
+}
+
+.stay-btn-amber-outline {
+  background: #ffffff;
+  color: #b45309 !important;
+  border: 1.5px solid #fcd34d;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.stay-btn-amber-outline:hover {
+  background: #fffbeb;
+}
+
+/* Modal styles cho Gia hạn / Trả phòng */
+.stay-type-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stay-type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid var(--border, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.stay-type-btn.active {
+  border-color: #222222;
+  background: #f4f4f5;
+  color: #222222;
+}
+.stay-type-btn.active-return {
+  border-color: #ea580c;
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.duration-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.duration-pill {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border, #cbd5e1);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-body, #334155);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.duration-pill:hover {
+  border-color: #222222;
+}
+.duration-pill.active {
+  border-color: #222222;
+  background: #222222;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.stay-calc-card {
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  margin: 16px 0;
+  font-size: 13.5px;
+}
+.stay-calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.stay-calc-row:last-child {
+  border-bottom: none;
+}
+.stay-calc-row span {
+  color: #64748b;
+}
+.stay-calc-row strong {
+  color: #1e293b;
+}
+.stay-penalty-highlight {
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+/* Thẻ thông báo mới cuộn chuột khi nhiều hơn 3 thông báo */
+.feed-scroll-container {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.feed-scroll-container::-webkit-scrollbar {
+  width: 5px;
+}
+.feed-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.feed-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.feed-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Huy hiệu Quá hạn nổi bật tông đỏ */
+.stay-badge-overdue-red {
+  display: inline-flex;
+  align-items: center;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1.5px solid #f87171;
+  border-radius: 9999px;
+  padding: 2.5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.12);
+}
+
+/* Tối ưu hóa phản hồi trên giao diện điện thoại di động */
+@media (max-width: 768px) {
+  .stay-deadline-alert {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 14px 16px;
+  }
+  .stay-alert-content {
+    align-items: center;
+    gap: 12px;
+  }
+  .stay-alert-actions {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+  }
+  .stay-alert-actions button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 10px 8px;
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  .stay-preview {
+    gap: 16px;
+  }
+  .stay-room {
+    width: 105px;
+    min-height: 105px;
+  }
+}
+
+@media (max-width: 540px) {
+  .stay-preview {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .stay-room {
+    width: 100%;
+    min-height: 58px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 10px 16px;
+    gap: 14px;
+  }
+  .stay-room strong {
+    font-size: 20px;
+    margin-top: 0;
+  }
+}
+

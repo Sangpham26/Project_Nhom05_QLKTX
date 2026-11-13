@@ -162,14 +162,25 @@ const validDuration = (value) => {
 };
 const endAfterMonths = (startDate, months) => {
   const start = new Date(`${validDate(startDate, "ngày bắt đầu")}T00:00:00Z`);
-  const target = new Date(
-    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1),
-  );
-  const lastDay = new Date(
-    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  target.setUTCDate(Math.min(start.getUTCDate(), lastDay));
+  const year = start.getUTCFullYear();
+  const month = start.getUTCMonth();
+  const day = start.getUTCDate();
+  if (day <= 10) {
+    const endM = month + months - 1;
+    const eYear = year + Math.floor(endM / 12);
+    const eMonth = endM % 12;
+    const lastDay = new Date(Date.UTC(eYear, eMonth + 1, 0)).getUTCDate();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${eYear}-${pad(eMonth + 1)}-${pad(lastDay)}`;
+  }
+  const target = new Date(Date.UTC(year, month + months, day));
+  target.setUTCDate(target.getUTCDate() - 1);
   return target.toISOString().slice(0, 10);
+};
+const addDays = (dateStr, days) => {
+  const d = new Date(`${validDate(dateStr, "ngày")}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 };
 const positive = (value, label, zero = false) => {
   const n = Number(value);
@@ -286,10 +297,18 @@ const getPeriodDateRange = (periodMonth) => {
 };
 
 const stayDaysInPeriod = (stay, periodStart, periodEnd, daysInMonth) => {
-  if (stay.status !== "ACTIVE") return 0;
+  if (stay.status !== "ACTIVE" && stay.status !== "ENDED") return 0;
   const stayEnd = stay.actualEndDate || stay.plannedEndDate || "9999-12-31";
-  if (stay.startDate > periodEnd || stayEnd < periodStart) return 0;
-  const start = stay.startDate > periodStart ? stay.startDate : periodStart;
+  let effStart = stay.startDate;
+  if (
+    stay.extensionStartDate &&
+    stay.extensionStartDate >= periodStart &&
+    stay.extensionStartDate <= periodEnd
+  ) {
+    effStart = stay.extensionStartDate;
+  }
+  if (effStart > periodEnd || stayEnd < periodStart) return 0;
+  const start = effStart > periodStart ? effStart : periodStart;
   const end = stayEnd < periodEnd ? stayEnd : periodEnd;
   const dStart = new Date(start + "T00:00:00Z");
   const dEnd = new Date(end + "T00:00:00Z");
@@ -913,11 +932,6 @@ async function requestStay(user, body) {
     if (!stay) fail("Bạn chưa có lượt lưu trú đang hoạt động.");
     if (!["EXTEND", "RETURN"].includes(body.type))
       fail("Loại yêu cầu không hợp lệ.");
-    const desiredDate = validDate(body.desiredDate, "ngày mong muốn");
-    if (body.type === "EXTEND" && desiredDate <= stay.plannedEndDate)
-      fail("Ngày gia hạn phải sau ngày kết thúc hiện tại.");
-    if (body.type === "RETURN" && desiredDate < stay.startDate)
-      fail("Ngày trả phòng không hợp lệ.");
     if (
       db.requests.some(
         (x) =>
@@ -927,12 +941,62 @@ async function requestStay(user, body) {
       )
     )
       fail("Đã có yêu cầu cùng loại đang chờ xử lý.");
+
+    const todayDate = today();
+    const dPlanned = new Date(`${stay.plannedEndDate}T00:00:00Z`);
+    const dToday = new Date(`${todayDate}T00:00:00Z`);
+    const diffDays = Math.round((dPlanned - dToday) / 86400000);
+    const isOverdue = diffDays < 0;
+    const overdueDays = isOverdue ? Math.abs(diffDays) : 0;
+    const penaltyRate = 25000;
+    const penaltyAmount = overdueDays * penaltyRate;
+
+    let desiredDate;
+    let startDateForCycle = null;
+    let months = null;
+
+    if (body.type === "EXTEND") {
+      months = body.months ? Number(body.months) : 6;
+      if (![1, 3, 6, 12].includes(months)) months = 6;
+
+      if (!isOverdue) {
+        // Gia hạn trước khi phạt: Ngày bắt đầu của chu kỳ mới là ngày hôm sau của chu kỳ trước
+        startDateForCycle = addDays(stay.plannedEndDate, 1);
+      } else {
+        // Gia hạn khi quá hạn: Tính ngày hôm sau của ngày bị phạt (ngày nộp đơn) làm ngày bắt đầu
+        startDateForCycle = addDays(todayDate, 1);
+      }
+
+      desiredDate = body.desiredDate
+        ? validDate(body.desiredDate, "ngày mong muốn")
+        : endAfterMonths(startDateForCycle, months);
+
+      if (desiredDate <= stay.plannedEndDate)
+        fail("Ngày kết thúc gia hạn phải sau ngày kết thúc hiện tại.");
+    } else {
+      // RETURN
+      if (!isOverdue) {
+        // Trả phòng đúng hạn: Tự động lấy ngày dự kiến kết thúc hiện tại
+        desiredDate = body.desiredDate
+          ? validDate(body.desiredDate, "ngày mong muốn")
+          : stay.plannedEndDate;
+      } else {
+        // Quá hạn: Vẫn tính phạt và lấy ngày hôm sau của ngày phạt
+        desiredDate = addDays(todayDate, 1);
+      }
+    }
+
     const item = {
       id: id(),
       studentId: profile.id,
       stayId: stay.id,
       type: body.type,
+      months,
+      startDateForCycle,
       desiredDate,
+      overdueDays,
+      penaltyRate,
+      penaltyAmount,
       reason: String(required(body.reason, "lý do")),
       status: "PENDING",
       createdAt: now(),
@@ -941,7 +1005,7 @@ async function requestStay(user, body) {
     notifyTeam(
       db,
       "Yêu cầu lưu trú mới",
-      `${profile.fullName} đã gửi yêu cầu ${body.type === "EXTEND" ? "gia hạn" : "trả phòng"}.`,
+      `${profile.fullName} đã gửi yêu cầu ${body.type === "EXTEND" ? "gia hạn" : "trả phòng"}${overdueDays > 0 ? ` (Quá hạn ${overdueDays} ngày)` : ""}.`,
       "/requests",
     );
     logEvent(db, {
@@ -949,10 +1013,10 @@ async function requestStay(user, body) {
       actorName: profile.fullName || "Sinh viên",
       actorRole: "STUDENT",
       action: body.type === "EXTEND" ? "YÊU CẦU GIA HẠN" : "YÊU CẦU TRẢ PHÒNG",
-      title: `SV ${profile.fullName} (${profile.studentCode || "—"}) gửi yêu cầu ${body.type === "EXTEND" ? "gia hạn lưu trú" : "trả phòng"}`,
-      body: `Lý do: "${item.reason}". Ngày mong muốn: ${item.desiredDate}.`,
+      title: `SV ${profile.fullName} (${profile.studentCode || "—"}) gửi yêu cầu ${body.type === "EXTEND" ? "gia hạn lưu trú" : "trả phòng"}${overdueDays > 0 ? ` [Quá hạn ${overdueDays} ngày]` : ""}`,
+      body: `Lý do: "${item.reason}". Ngày mong muốn: ${item.desiredDate}.${overdueDays > 0 ? ` Phí phạt trễ hạn tính: ${penaltyAmount.toLocaleString("vi-VN")} ₫.` : ""}`,
       target: `MSSV: ${profile.studentCode || "—"}`,
-      tone: "amber",
+      tone: overdueDays > 0 ? "rose" : "amber",
     });
     return item;
   });
@@ -968,10 +1032,40 @@ async function decideRequest(user, targetId, body) {
       request.rejectionReason = String(required(body.reason, "lý do từ chối"));
     else {
       if (stay.status !== "ACTIVE") fail("Lượt lưu trú không còn hiệu lực.");
-      if (request.type === "EXTEND") stay.plannedEndDate = request.desiredDate;
-      else {
+      if (request.type === "EXTEND") {
+        stay.plannedEndDate = request.desiredDate;
+        if (request.overdueDays > 0 && request.penaltyAmount > 0) {
+          stay.extensionStartDate = request.startDateForCycle;
+          if (!stay.penalties) stay.penalties = [];
+          stay.penalties.push({
+            id: request.id,
+            type: "EXTEND",
+            days: request.overdueDays,
+            rate: request.penaltyRate || 25000,
+            amount: request.penaltyAmount,
+            date: today(),
+            periodMonth: today().slice(0, 7),
+            reason: `Phạt gia hạn trễ ${request.overdueDays} ngày`,
+            billed: false,
+          });
+        }
+      } else {
         stay.status = "ENDED";
         stay.actualEndDate = request.desiredDate;
+        if (request.overdueDays > 0 && request.penaltyAmount > 0) {
+          if (!stay.penalties) stay.penalties = [];
+          stay.penalties.push({
+            id: request.id,
+            type: "RETURN",
+            days: request.overdueDays,
+            rate: request.penaltyRate || 25000,
+            amount: request.penaltyAmount,
+            date: today(),
+            periodMonth: today().slice(0, 7),
+            reason: `Phạt trả phòng trễ ${request.overdueDays} ngày`,
+            billed: false,
+          });
+        }
       }
     }
     request.status = body.status;
@@ -983,7 +1077,7 @@ async function decideRequest(user, targetId, body) {
       stu.userId,
       "Yêu cầu lưu trú đã xử lý",
       body.status === "APPROVED"
-        ? "Yêu cầu của bạn đã được duyệt."
+        ? `Yêu cầu của bạn đã được duyệt.${request.overdueDays > 0 ? ` Phí phạt ${request.penaltyAmount.toLocaleString("vi-VN")} ₫ sẽ được tính vào hóa đơn.` : ""}`
         : `Yêu cầu bị từ chối: ${request.rejectionReason}`,
       "/requests",
     );
@@ -1416,6 +1510,22 @@ function billingPreview(db, periodId) {
         return;
       }
 
+      // Kiểm tra các khoản phạt gia hạn / trả phòng trễ hạn áp dụng vào kỳ này
+      const stayPenalties = (stay.penalties || []).filter(
+        (p) =>
+          !p.billed &&
+          (p.periodMonth === period.month ||
+            (p.date && p.date.slice(0, 7) === period.month)),
+      );
+      const penaltyFee = stayPenalties.reduce(
+        (sum, p) => sum + (p.amount || 0),
+        0,
+      );
+      const penaltyDays = stayPenalties.reduce(
+        (sum, p) => sum + (p.days || 0),
+        0,
+      );
+
       const studentObj = db.students.find((s) => s.id === stay.studentId);
       items.push({
         studentId: stay.studentId,
@@ -1434,6 +1544,13 @@ function billingPreview(db, periodId) {
           stayEndInPeriod: end,
           monthlyRoomFee,
           roomFee,
+          penaltyFee,
+          penaltyDays,
+          penaltyDetails: stayPenalties.map((p) => ({
+            days: p.days,
+            amount: p.amount,
+            reason: p.reason,
+          })),
           electricityRate: pricing.electricity,
           waterRate: pricing.water,
           electricStart: electric.start,
@@ -1448,7 +1565,8 @@ function billingPreview(db, periodId) {
         roomFee,
         electricityFee: elecFee,
         waterFee: watFee,
-        total: money(roomFee + elecFee + watFee),
+        penaltyFee: penaltyFee || 0,
+        total: money(roomFee + elecFee + watFee + (penaltyFee || 0)),
       });
     });
   }
@@ -1472,6 +1590,22 @@ async function issue(user, periodId) {
       issuedBy: user.id,
     }));
     db.invoices.push(...created);
+    for (const item of created) {
+      const stay = db.stays.find(
+        (s) => s.studentId === item.studentId && s.roomId === item.roomId,
+      );
+      if (stay && stay.penalties) {
+        for (const p of stay.penalties) {
+          if (
+            !p.billed &&
+            (p.periodMonth === result.period.month ||
+              (p.date && p.date.slice(0, 7) === result.period.month))
+          ) {
+            p.billed = true;
+          }
+        }
+      }
+    }
     created.forEach((x) =>
       notify(
         db,

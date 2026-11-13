@@ -13,6 +13,7 @@ const scopes = {
     "staff",
     "stays",
     "invoices",
+    "payments",
     "applications",
     "requests",
     "activityLogs",
@@ -2012,11 +2013,15 @@ async function userDelete(targetUserId, actor) {
         }
 
         // Kiểm tra hóa đơn chưa thanh toán hoặc công nợ (invoices)
-        const hasUnpaidInvoice = (db.invoices || []).some(
-          (inv) =>
-            inv.studentId === studentProfile.id &&
-            !["PAID", "CANCELLED"].includes(inv.status),
+        const studentInvoices = (db.invoices || []).filter(
+          (inv) => inv.studentId === studentProfile.id,
         );
+        const hasUnpaidInvoice = studentInvoices.some((inv) => {
+          const paidAmount = (db.payments || [])
+            .filter((p) => p.invoiceId === inv.id)
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+          return (inv.total || 0) - paidAmount > 0;
+        });
         if (hasUnpaidInvoice) {
           fail(
             "Không thể xóa: Sinh viên còn hóa đơn chưa thanh toán hoặc công nợ tồn đọng.",
@@ -2039,7 +2044,7 @@ async function userDelete(targetUserId, actor) {
         const hasPendingReq = (db.requests || []).some(
           (req) =>
             req.studentId === studentProfile.id &&
-            !["RESOLVED", "CLOSED", "REJECTED"].includes(req.status),
+            !["APPROVED", "RESOLVED", "CLOSED", "REJECTED"].includes(req.status),
         );
         if (hasPendingReq) {
           fail(
@@ -2047,13 +2052,21 @@ async function userDelete(targetUserId, actor) {
           );
         }
 
-        // Xóa hồ sơ sinh viên
+        // Xóa hồ sơ sinh viên và dọn dẹp dữ liệu liên quan để tránh dữ liệu mồ côi
         const studentIndex = db.students.findIndex(
           (s) => s.id === studentProfile.id,
         );
         if (studentIndex !== -1) {
           db.students.splice(studentIndex, 1);
         }
+        const studentInvoiceIds = new Set(studentInvoices.map((i) => i.id));
+        db.payments = (db.payments || []).filter(
+          (p) => !studentInvoiceIds.has(p.invoiceId),
+        );
+        db.stays = (db.stays || []).filter((s) => s.studentId !== studentProfile.id);
+        db.requests = (db.requests || []).filter((r) => r.studentId !== studentProfile.id);
+        db.applications = (db.applications || []).filter((a) => a.studentId !== studentProfile.id);
+        db.invoices = (db.invoices || []).filter((i) => i.studentId !== studentProfile.id);
       }
     }
 
@@ -2065,7 +2078,7 @@ async function userDelete(targetUserId, actor) {
         const hasAssignedReq = (db.requests || []).some(
           (req) =>
             req.assignedTo === staffProfile.id &&
-            !["RESOLVED", "CLOSED", "REJECTED"].includes(req.status),
+            !["APPROVED", "RESOLVED", "CLOSED", "REJECTED"].includes(req.status),
         );
         if (hasAssignedReq) {
           fail(

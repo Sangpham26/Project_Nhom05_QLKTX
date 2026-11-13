@@ -679,12 +679,38 @@ h3 {
   border-radius: 20px;
 }
 .table-wrap {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 8px;
+  width: 100%;
 }
+/* Thanh kéo ngang rõ ràng, tiện dụng cho tất cả các bảng */
+.table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+.table-wrap::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.table-wrap::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+.table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
 .table-wrap table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 650px;
+  min-width: 900px;
+}
+.modal .table-wrap table {
+  min-width: 600px;
+}
+.table-action {
+  white-space: nowrap;
 }
 .table-wrap th {
   text-align: left;
@@ -2012,5 +2038,28 @@ select:focus,
     font-size: 20px;
     margin-top: 0;
   }
+}
+
+/* Thẻ hồ sơ và yêu cầu có thể nhấp chuyển trang nhanh */
+.pending-queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer !important;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+.pending-queue-item * {
+  cursor: pointer !important;
+}
+.pending-queue-item:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 

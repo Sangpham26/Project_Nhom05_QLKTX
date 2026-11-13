@@ -17,6 +17,8 @@ import {
   useParams,
 } from "react-router-dom";
 import {
+  AlertCircle,
+  AlertTriangle,
   ArrowDownRight,
   ArrowLeft,
   ArrowRight,
@@ -32,6 +34,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
+  Clock,
   CreditCard,
   DoorOpen,
   Droplets,
@@ -2574,10 +2577,428 @@ function ExportLogsModal({ onClose }) {
   );
 }
 
+function StayRequestModal({
+  currentStay,
+  initialType = "EXTEND",
+  onClose,
+  onSuccess,
+}) {
+  const [type, setType] = useState(initialType);
+  const [months, setMonths] = useState(3);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const plannedEnd = currentStay?.plannedEndDate || todayStr;
+
+  // Tính số ngày chênh lệch & phạt trễ hạn
+  const { diffDays, isOverdue, overdueDays, penaltyAmount } = useMemo(() => {
+    const dPlanned = new Date(`${plannedEnd}T00:00:00Z`);
+    const dToday = new Date(`${todayStr}T00:00:00Z`);
+    const diff = Math.round((dPlanned - dToday) / 86400000);
+    const overdue = diff < 0;
+    const days = overdue ? Math.abs(diff) : 0;
+    const rate = 25000;
+    return {
+      diffDays: diff,
+      isOverdue: overdue,
+      overdueDays: days,
+      penaltyRate: rate,
+      penaltyAmount: days * rate,
+    };
+  }, [plannedEnd, todayStr]);
+
+  const addDays = (dateStr, days) => {
+    const d = new Date(`${dateStr}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const calcEndAfterMonths = (startDateStr, m) => {
+    const start = new Date(`${startDateStr}T00:00:00Z`);
+    const year = start.getUTCFullYear();
+    const month = start.getUTCMonth();
+    const day = start.getUTCDate();
+    if (day <= 10) {
+      const endM = month + m - 1;
+      const eYear = year + Math.floor(endM / 12);
+      const eMonth = endM % 12;
+      const lastDay = new Date(Date.UTC(eYear, eMonth + 1, 0)).getUTCDate();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${eYear}-${pad(eMonth + 1)}-${pad(lastDay)}`;
+    }
+    const target = new Date(Date.UTC(year, month + m, day));
+    target.setUTCDate(target.getUTCDate() - 1);
+    return target.toISOString().slice(0, 10);
+  };
+
+  // Tính ngày bắt đầu chu kỳ mới & ngày dự kiến kết thúc theo đúng nghiệp vụ
+  const { startDateForCycle, desiredEndDate } = useMemo(() => {
+    if (type === "EXTEND") {
+      let start;
+      if (!isOverdue) {
+        // Gia hạn trước khi phạt: lấy ngày hôm sau của chu kỳ trước
+        start = addDays(plannedEnd, 1);
+      } else {
+        // Gia hạn khi quá hạn: tính ngày hôm sau của ngày bị phạt (ngày mai)
+        start = addDays(todayStr, 1);
+      }
+      const end = calcEndAfterMonths(start, months);
+      return { startDateForCycle: start, desiredEndDate: end };
+    } else {
+      // RETURN
+      if (!isOverdue) {
+        // Trả phòng đúng hạn: tự động lấy ngày dự kiến kết thúc
+        return { startDateForCycle: plannedEnd, desiredEndDate: plannedEnd };
+      } else {
+        // Quá hạn: lấy ngày hôm sau của ngày phạt
+        const retDate = addDays(todayStr, 1);
+        return { startDateForCycle: retDate, desiredEndDate: retDate };
+      }
+    }
+  }, [type, isOverdue, plannedEnd, todayStr, months]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!reason.trim()) {
+      setError("Vui lòng nhập lý do.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api("/requests", {
+        method: "POST",
+        body: {
+          type,
+          months: type === "EXTEND" ? months : undefined,
+          desiredDate: desiredEndDate,
+          reason: reason.trim(),
+        },
+      });
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (err) {
+      setError(err.message || "Không thể gửi yêu cầu.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={type === "EXTEND" ? "Gia hạn lưu trú KTX" : "Đăng ký trả phòng KTX"}
+      onClose={onClose}
+    >
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+      >
+        {/* Banner tình trạng hạn */}
+        {isOverdue ? (
+          <div
+            style={{
+              padding: "12px 14px",
+              borderRadius: "10px",
+              background: "#ffffff",
+              border: "1.5px solid #222222",
+              color: "#222222",
+              fontSize: "13.5px",
+              lineHeight: "1.5",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontWeight: 700,
+                marginBottom: "4px",
+                color: "#222222",
+              }}
+            >
+              <AlertCircle size={18} color="#dc2626" />
+              Đang bị quá hạn lưu trú {overdueDays} ngày!
+            </div>
+            <div style={{ color: "#444444" }}>
+              Chu kỳ cũ đã kết thúc vào ngày <strong>{date(plannedEnd)}</strong>.
+              Hệ thống đang tính phí phạt trễ hạn:{" "}
+              <strong style={{ color: "#dc2626" }}>
+                {overdueDays} ngày × 25.000 ₫ = {money(penaltyAmount)}
+              </strong>
+              .
+              {type === "EXTEND"
+                ? ` Chu kỳ gia hạn mới sẽ bắt đầu tính từ ngày mai (${date(startDateForCycle)}).`
+                : ` Ngày trả phòng được xác định là ngày mai (${date(desiredEndDate)}).`}
+            </div>
+          </div>
+        ) : diffDays <= 3 ? (
+          <div
+            style={{
+              padding: "12px 14px",
+              borderRadius: "10px",
+              background: "#fef2f2",
+              border: "1.5px solid #f87171",
+              color: "#991b1b",
+              fontSize: "13.5px",
+              lineHeight: "1.5",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontWeight: 700,
+                marginBottom: "4px",
+              }}
+            >
+              <AlertTriangle size={18} color="#dc2626" />
+              Cảnh báo: Chỉ còn{" "}
+              {diffDays === 0 ? "hôm nay là ngày cuối" : `${diffDays} ngày cuối`}!
+            </div>
+            <div>
+              Chu kỳ lưu trú sẽ kết thúc vào ngày <strong>{date(plannedEnd)}</strong>
+              . Vui lòng gửi yêu cầu sớm để không phát sinh phí phạt trễ hạn
+              (25.000 ₫/ngày).
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: "10px",
+              background: "#f0fdf4",
+              border: "1px solid #86efac",
+              color: "#166534",
+              fontSize: "13px",
+            }}
+          >
+            Chu kỳ hiện tại đến ngày <strong>{date(plannedEnd)}</strong> (còn{" "}
+            {diffDays} ngày).
+          </div>
+        )}
+
+        {/* Chọn loại yêu cầu */}
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontSize: "13px",
+              fontWeight: 600,
+              marginBottom: "6px",
+              color: "var(--text-body, #334155)",
+            }}
+          >
+            Loại yêu cầu <span style={{ color: "#ef4444" }}>*</span>
+          </label>
+          <div className="stay-type-selector">
+            <button
+              type="button"
+              className={`stay-type-btn ${type === "EXTEND" ? "active" : ""}`}
+              onClick={() => setType("EXTEND")}
+            >
+              <RotateCw size={17} /> Gia hạn lưu trú
+            </button>
+            <button
+              type="button"
+              className={`stay-type-btn ${type === "RETURN" ? "active-return" : ""}`}
+              onClick={() => setType("RETURN")}
+            >
+              <DoorOpen size={17} /> Trả phòng KTX
+            </button>
+          </div>
+        </div>
+
+        {/* Nếu chọn Gia hạn: Chọn chu kỳ tháng */}
+        {type === "EXTEND" && (
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "13px",
+                fontWeight: 600,
+                marginBottom: "6px",
+                color: "var(--text-body, #334155)",
+              }}
+            >
+              Chọn chu kỳ gia hạn <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <div className="duration-pills">
+              {[
+                { m: 1, text: "1 tháng" },
+                { m: 3, text: "3 tháng (Chuẩn)" },
+                { m: 6, text: "6 tháng (1 học kỳ)" },
+                { m: 12, text: "12 tháng (1 năm)" },
+              ].map((opt) => (
+                <button
+                  key={opt.m}
+                  type="button"
+                  className={`duration-pill ${months === opt.m ? "active" : ""}`}
+                  onClick={() => setMonths(opt.m)}
+                >
+                  {opt.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Bảng chi tiết tính toán chu kỳ */}
+        <div className="stay-calc-card">
+          <div className="stay-calc-row">
+            <span>Phòng lưu trú:</span>
+            <strong>
+              {currentStay?.room?.code || "—"} (
+              {currentStay?.room?.roomType?.name || "KTX"})
+            </strong>
+          </div>
+          {type === "EXTEND" ? (
+            <>
+              <div className="stay-calc-row">
+                <span>Ngày bắt đầu chu kỳ mới:</span>
+                <div style={{ textAlign: "right" }}>
+                  <strong>{date(startDateForCycle)}</strong>
+                  <small
+                    style={{
+                      display: "block",
+                      fontWeight: 400,
+                      color: "#64748b",
+                      fontSize: "12px",
+                    }}
+                  >
+                    {isOverdue
+                      ? "(Ngày hôm sau của ngày phạt)"
+                      : "(Ngày hôm sau của chu kỳ trước)"}
+                  </small>
+                </div>
+              </div>
+              <div className="stay-calc-row">
+                <span>Ngày dự kiến kết thúc:</span>
+                <strong style={{ color: "#2563eb", fontSize: "14.5px" }}>
+                  {date(desiredEndDate)}
+                </strong>
+              </div>
+            </>
+          ) : (
+            <div className="stay-calc-row">
+              <span>Ngày trả phòng dự kiến:</span>
+              <div style={{ textAlign: "right" }}>
+                <strong style={{ color: "#ea580c", fontSize: "14.5px" }}>
+                  {date(desiredEndDate)}
+                </strong>
+                <small
+                  style={{
+                    display: "block",
+                    fontWeight: 400,
+                    color: "#64748b",
+                    fontSize: "12px",
+                  }}
+                >
+                  {isOverdue
+                    ? "(Ngày hôm sau của ngày phạt)"
+                    : "(Tự động theo hạn kết thúc chu kỳ)"}
+                </small>
+              </div>
+            </div>
+          )}
+          {isOverdue && (
+            <div
+              className="stay-calc-row"
+              style={{
+                background: "#fef2f2",
+                margin: "8px -16px -14px -16px",
+                padding: "10px 16px",
+                borderRadius: "0 0 11px 11px",
+                borderTop: "1px dashed #fca5a5",
+              }}
+            >
+              <span style={{ color: "#991b1b", fontWeight: 600 }}>
+                Phí phạt trễ hạn tính đến nay:
+              </span>
+              <strong className="stay-penalty-highlight">
+                {overdueDays} ngày × 25.000 ₫ = {money(penaltyAmount)}
+              </strong>
+            </div>
+          )}
+        </div>
+
+        {/* Lý do */}
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontSize: "13px",
+              fontWeight: 600,
+              marginBottom: "6px",
+              color: "var(--text-body, #334155)",
+            }}
+          >
+            Lý do yêu cầu <span style={{ color: "#ef4444" }}>*</span>
+          </label>
+          <textarea
+            required
+            rows={3}
+            className="input"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={
+              type === "EXTEND"
+                ? "Ví dụ: Tiếp tục theo học kỳ tiếp theo tại trường..."
+                : "Ví dụ: Đã hoàn tất khóa học / chuyển về gia đình..."
+            }
+            style={{
+              width: "100%",
+              borderRadius: "8px",
+              padding: "10px 12px",
+              border: "1.5px solid #cbd5e1",
+              resize: "vertical",
+            }}
+          />
+        </div>
+
+        {error && (
+          <div className="inline-error" style={{ margin: 0 }}>
+            {error}
+          </div>
+        )}
+
+        <div className="modal-actions" style={{ marginTop: "6px" }}>
+          <button
+            type="button"
+            className="button button-ghost"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            className="button button-primary"
+            disabled={busy}
+            style={
+              isOverdue
+                ? { background: "#222222", borderColor: "#222222" }
+                : diffDays <= 3
+                ? { background: "#dc2626", borderColor: "#dc2626" }
+                : {}
+            }
+          >
+            {busy ? "Đang gửi..." : "Gửi yêu cầu"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function Dashboard() {
   const { session } = useAuth();
   const role = session.user.role;
   const [exportOpen, setExportOpen] = useState(false);
+  const [stayModal, setStayModal] = useState(null);
   const apps = useLoad("/applications?limit=20"),
     stays = useLoad("/stays?limit=10"),
     invoices = useLoad("/invoices?limit=100"),
@@ -2656,10 +3077,123 @@ function Dashboard() {
       invoices.data?.items
         ?.filter((x) => x.balance > 0)
         .reduce((a, x) => a + x.balance, 0) || 0;
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const plannedEnd = active?.plannedEndDate;
+  const stayDiffDays = useMemo(() => {
+    if (!plannedEnd) return null;
+    const dPlanned = new Date(`${plannedEnd}T00:00:00Z`);
+    const dToday = new Date(`${todayStr}T00:00:00Z`);
+    return Math.round((dPlanned - dToday) / 86400000);
+  }, [plannedEnd, todayStr]);
+  const isStayOverdue = stayDiffDays !== null && stayDiffDays < 0;
+  const stayOverdueDays = isStayOverdue ? Math.abs(stayDiffDays) : 0;
+
   return (
     <>
       {role === "STUDENT" ? (
         <>
+          {/* Cảnh báo hạn chu kỳ lưu trú (10 ngày báo trước, 3 ngày chữ đỏ, quá hạn màu #222222 và icon đỏ) */}
+          {active && stayDiffDays !== null && stayDiffDays <= 10 && (
+            isStayOverdue ? (
+              <div className="stay-deadline-alert stay-alert-dark">
+                <div className="stay-alert-content">
+                  <div className="stay-alert-icon">
+                    <AlertCircle size={24} color="#dc2626" />
+                  </div>
+                  <div>
+                    <div className="stay-alert-title">
+                      ĐANG BỊ QUÁ HẠN LƯU TRÚ {stayOverdueDays} NGÀY!
+                    </div>
+                    <p className="stay-alert-desc">
+                      Chu kỳ lưu trú phòng <strong>{active.room?.code}</strong> đã hết hạn từ ngày{" "}
+                      <strong>{date(plannedEnd)}</strong>. Hệ thống đang tính phí phạt trễ hạn{" "}
+                      <strong>25.000 ₫/ngày</strong> (Hiện tại:{" "}
+                      <strong style={{ color: "#dc2626" }}>{money(stayOverdueDays * 25000)}</strong>). Vui lòng thực hiện{" "}
+                      <strong>Gia hạn ngay</strong> hoặc <strong>Trả phòng</strong> để tránh phát sinh thêm phí phạt.
+                    </p>
+                  </div>
+                </div>
+                <div className="stay-alert-actions">
+                  <button
+                    className="stay-btn-dark"
+                    onClick={() => setStayModal({ type: "EXTEND" })}
+                  >
+                    Gia hạn ngay
+                  </button>
+                  <button
+                    className="stay-btn-dark-outline"
+                    onClick={() => setStayModal({ type: "RETURN" })}
+                  >
+                    Trả phòng
+                  </button>
+                </div>
+              </div>
+            ) : stayDiffDays <= 3 ? (
+              <div className="stay-deadline-alert stay-alert-red">
+                <div className="stay-alert-content">
+                  <div className="stay-alert-icon">
+                    <AlertTriangle size={24} color="#dc2626" />
+                  </div>
+                  <div>
+                    <div className="stay-alert-title">
+                      🚨 CẢNH BÁO: CHỈ CÒN {stayDiffDays === 0 ? "HÔM NAY LÀ NGÀY CUỐI" : `${stayDiffDays} NGÀY CUỐI`} ĐỂ GIA HẠN LƯU TRÚ!
+                    </div>
+                    <p className="stay-alert-desc">
+                      Chu kỳ lưu trú phòng <strong>{active.room?.code}</strong> sẽ kết thúc vào ngày{" "}
+                      <strong>{date(plannedEnd)}</strong>. Vui lòng gửi yêu cầu gia hạn hoặc trả phòng trước ngày này để không bị phạt trễ hạn (25.000 ₫/ngày).
+                    </p>
+                  </div>
+                </div>
+                <div className="stay-alert-actions">
+                  <button
+                    className="stay-btn-red"
+                    onClick={() => setStayModal({ type: "EXTEND" })}
+                  >
+                    Gia hạn ngay
+                  </button>
+                  <button
+                    className="stay-btn-red-outline"
+                    onClick={() => setStayModal({ type: "RETURN" })}
+                  >
+                    Trả phòng
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="stay-deadline-alert stay-alert-amber">
+                <div className="stay-alert-content">
+                  <div className="stay-alert-icon">
+                    <Clock size={24} color="#b45309" />
+                  </div>
+                  <div>
+                    <div className="stay-alert-title">
+                      ⏳ SẮP HẾT HẠN LƯU TRÚ CHU KỲ (CÒN {stayDiffDays} NGÀY)
+                    </div>
+                    <p className="stay-alert-desc">
+                      Chu kỳ lưu trú phòng <strong>{active.room?.code}</strong> sẽ kết thúc vào ngày{" "}
+                      <strong>{date(plannedEnd)}</strong>. Bạn có thể gia hạn chu kỳ tiếp theo hoặc đăng ký trả phòng ngay từ bây giờ.
+                    </p>
+                  </div>
+                </div>
+                <div className="stay-alert-actions">
+                  <button
+                    className="stay-btn-amber"
+                    onClick={() => setStayModal({ type: "EXTEND" })}
+                  >
+                    Gia hạn lưu trú
+                  </button>
+                  <button
+                    className="stay-btn-amber-outline"
+                    onClick={() => setStayModal({ type: "RETURN" })}
+                  >
+                    Trả phòng
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+
           <div className="metrics-grid">
             <Metric
               icon={BedDouble}
@@ -2704,7 +3238,7 @@ function Dashboard() {
               {active ? (
                 <div className="stay-preview">
                   <div className="stay-room">
-                    <BedDouble size={28} />
+                    <BedDouble size={26} />
                     <strong>{active.room?.code}</strong>
                     <span>{active.room?.building?.name}</span>
                   </div>
@@ -2719,7 +3253,44 @@ function Dashboard() {
                     </div>
                     <div>
                       <span>Dự kiến kết thúc</span>
-                      <strong>{date(active.plannedEndDate)}</strong>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "3px" }}>
+                        <strong>{date(active.plannedEndDate)}</strong>
+                        {stayDiffDays !== null && (
+                          isStayOverdue ? (
+                            <span className="stay-badge-overdue-red">
+                              Quá hạn {stayOverdueDays} ngày (Phạt {money(stayOverdueDays * 25000)})
+                            </span>
+                          ) : stayDiffDays <= 3 ? (
+                            <span
+                              style={{
+                                backgroundColor: "#fef2f2",
+                                color: "#dc2626",
+                                border: "1.5px solid #fca5a5",
+                                borderRadius: "9999px",
+                                padding: "2px 8px",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                              }}
+                            >
+                              Còn {stayDiffDays} ngày cuối
+                            </span>
+                          ) : stayDiffDays <= 10 ? (
+                            <span
+                              style={{
+                                backgroundColor: "#fef3c7",
+                                color: "#b45309",
+                                border: "1px solid #fcd34d",
+                                borderRadius: "9999px",
+                                padding: "2px 8px",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Còn {stayDiffDays} ngày
+                            </span>
+                          ) : null
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2741,16 +3312,18 @@ function Dashboard() {
               }
             >
               {n.data?.items?.length ? (
-                n.data.items.map((x) => (
-                  <div className="feed-item" key={x.id}>
-                    <span className="feed-dot" />
-                    <div>
-                      <strong>{x.title}</strong>
-                      <p>{x.body}</p>
-                      <small>{date(x.createdAt)}</small>
+                <div className="feed-scroll-container">
+                  {n.data.items.map((x) => (
+                    <div className="feed-item" key={x.id}>
+                      <span className="feed-dot" />
+                      <div>
+                        <strong>{x.title}</strong>
+                        <p>{x.body}</p>
+                        <small>{date(x.createdAt)}</small>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
                 <Empty icon={Bell} />
               )}
@@ -2796,6 +3369,18 @@ function Dashboard() {
               <Empty icon={Wallet} />
             )}
           </Section>
+          {stayModal && active && (
+            <StayRequestModal
+              currentStay={active}
+              initialType={stayModal.type}
+              onClose={() => setStayModal(null)}
+              onSuccess={() => {
+                setStayModal(null);
+                stays.load();
+                requests.load();
+              }}
+            />
+          )}
         </>
       ) : (
         <>
@@ -4615,8 +5200,53 @@ function RequestsPage() {
                 { key: "room", label: "Phòng", render: (x) => x.room?.code },
                 {
                   key: "desiredDate",
-                  label: "Ngày mong muốn",
-                  render: (x) => date(x.desiredDate),
+                  label: "Hạn mong muốn",
+                  render: (x) => (
+                    <div>
+                      <div>{date(x.desiredDate)}</div>
+                      {x.months && (
+                        <small className="muted" style={{ display: "block" }}>
+                          Chu kỳ {x.months} tháng
+                        </small>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: "overdueDays",
+                  label: "Tình trạng",
+                  render: (x) =>
+                    x.overdueDays > 0 ? (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          backgroundColor: "#fef2f2",
+                          color: "#dc2626",
+                          border: "1.5px solid #f87171",
+                          borderRadius: "9999px",
+                          padding: "2px 10px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Quá hạn {x.overdueDays} ngày ({money(x.penaltyAmount)})
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          backgroundColor: "#f0fdf4",
+                          color: "#166534",
+                          border: "1px solid #86efac",
+                          borderRadius: "9999px",
+                          padding: "2px 8px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Đúng hạn
+                      </span>
+                    ),
                 },
                 { key: "reason", label: "Lý do" },
                 {
@@ -4661,32 +5291,17 @@ function RequestsPage() {
           <Empty icon={FileText} title="Chưa có yêu cầu" />
         )}
       </Section>
-      {form && (
-        <Modal title="Tạo yêu cầu lưu trú" onClose={() => setForm(false)}>
-          <Form
-            fields={[
-              {
-                label: "Loại yêu cầu",
-                name: "type",
-                required: true,
-                options: [
-                  { value: "EXTEND", label: "Gia hạn" },
-                  { value: "RETURN", label: "Trả phòng" },
-                ],
-              },
-              {
-                label: "Ngày mong muốn",
-                name: "desiredDate",
-                type: "date",
-                required: true,
-              },
-              { label: "Lý do", name: "reason", rows: 3, required: true },
-            ]}
-            onSave={save}
-            onCancel={() => setForm(false)}
-            submit="Gửi yêu cầu"
-          />
-        </Modal>
+      {form && current && (
+        <StayRequestModal
+          currentStay={current}
+          onClose={() => setForm(false)}
+          onSuccess={() => {
+            setForm(false);
+            setPage(1);
+            data.load();
+            notice("Đã gửi yêu cầu lưu trú thành công.");
+          }}
+        />
       )}
       {decision && (
         <Modal
@@ -4697,6 +5312,34 @@ function RequestsPage() {
             {decision.student?.fullName} · {decision.room?.code} · Ngày mong
             muốn {date(decision.desiredDate)}
           </p>
+          {decision.overdueDays > 0 && (
+            <div
+              style={{
+                margin: "0 0 16px 0",
+                padding: "12px 14px",
+                backgroundColor: "#ffffff",
+                border: "1.5px solid #222222",
+                borderRadius: "10px",
+                color: "#222222",
+                fontSize: "13px",
+                lineHeight: "1.5",
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: "4px", color: "#222222" }}>
+                Yêu cầu được gửi khi đã quá hạn {decision.overdueDays} ngày!
+              </div>
+              <div style={{ color: "#444444" }}>
+                Phí phạt trễ hạn được tính:{" "}
+                <strong style={{ color: "#dc2626" }}>
+                  {decision.overdueDays} ngày × 25.000 ₫ = {money(decision.penaltyAmount)}
+                </strong>
+                .
+                {decision.type === "EXTEND"
+                  ? ` Khi duyệt, chu kỳ mới sẽ bắt đầu từ ${date(decision.startDateForCycle)}.`
+                  : ` Khi duyệt, ngày trả phòng sẽ được ấn định là ${date(decision.desiredDate)}.`}
+              </div>
+            </div>
+          )}
           <Form
             fields={[
               {
@@ -6277,6 +6920,18 @@ function BillingPage() {
                     render: (x) => money(x.roomFee),
                   },
                   {
+                    key: "penaltyFee",
+                    label: "Phí phạt",
+                    render: (x) =>
+                      x.penaltyFee > 0 ? (
+                        <span style={{ color: "#dc2626", fontWeight: 700 }}>
+                          {money(x.penaltyFee)}
+                        </span>
+                      ) : (
+                        "—"
+                      ),
+                  },
+                  {
                     key: "electricityFee",
                     label: "Điện",
                     render: (x) => money(x.electricityFee),
@@ -6573,6 +7228,21 @@ function InvoiceDetail() {
               </span>
               <strong>{money(x.waterFee)}</strong>
             </div>
+            {(x.penaltyFee > 0 || s?.penaltyFee > 0) && (
+              <div style={{ color: "#dc2626" }}>
+                <span style={{ fontWeight: 600 }}>
+                  Phí phạt trễ hạn lưu trú (
+                  {s?.penaltyDays ||
+                    Math.round(
+                      (x.penaltyFee || s?.penaltyFee) / 25000,
+                    )}{" "}
+                  ngày × 25.000 ₫)
+                </span>
+                <strong style={{ color: "#dc2626" }}>
+                  {money(x.penaltyFee || s?.penaltyFee)}
+                </strong>
+              </div>
+            )}
             <div className="total">
               <span>Tổng cộng</span>
               <strong>{money(x.total)}</strong>

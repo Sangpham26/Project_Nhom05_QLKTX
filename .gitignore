@@ -6,6 +6,7 @@ server/data/database.json
 server/data/*.tmp
 tmp/
 server/uploads/
+AccountList.md
 
 # Internal docs and scripts (giu cuc bo, khong dua len github)
 *.docx

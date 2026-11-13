@@ -111,6 +111,16 @@ function endAfterMonths(startDate, months) {
   return target.toISOString().slice(0, 10);
 }
 
+function formatStayPeriod(snap) {
+  if (!snap?.stayStartInPeriod || !snap?.stayEndInPeriod) return "";
+  const sParts = String(snap.stayStartInPeriod).split("-");
+  const eParts = String(snap.stayEndInPeriod).split("-");
+  if (sParts.length === 3 && eParts.length === 3) {
+    return `${sParts[2]}/${sParts[1]} - ${eParts[2]}/${eParts[1]}`;
+  }
+  return "";
+}
+
 function Toast({ message, onClose }) {
   if (!message) return null;
   return (
@@ -6968,16 +6978,37 @@ function BillingPage() {
                   {
                     key: "stayDays",
                     label: "Lưu trú",
-                    render: (x) => (
-                      <div>
-                        <span>{x.snapshot.daysStayed ? `${x.snapshot.daysStayed}/${x.snapshot.daysInMonth} ngày` : "Cả kỳ"}</span>
-                        {x.snapshot.daysStayed && x.snapshot.daysInMonth && x.snapshot.daysStayed < x.snapshot.daysInMonth && (
-                          <span className="badge badge-peach" style={{ marginLeft: "6px", fontSize: "11px", padding: "1px 6px" }}>
-                            Vào giữa tháng
+                    render: (x) => {
+                      const snap = x.snapshot || {};
+                      const isPartial =
+                        snap.daysStayed &&
+                        snap.daysInMonth &&
+                        snap.daysStayed < snap.daysInMonth;
+                      const dateRange = formatStayPeriod(snap);
+                      return (
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          <span>
+                            {snap.daysStayed
+                              ? `${snap.daysStayed}/${snap.daysInMonth} ngày`
+                              : "Cả kỳ"}
                           </span>
-                        )}
-                      </div>
-                    ),
+                          {isPartial && (
+                            <>
+                              <span style={{ color: "#94a3b8", fontWeight: 400 }}>|</span>
+                              <span
+                                style={{
+                                  fontSize: "12.5px",
+                                  fontWeight: 600,
+                                  color: "var(--text)",
+                                }}
+                              >
+                                {dateRange || "Vào giữa tháng"}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      );
+                    },
                   },
                   {
                     key: "roomFee",
@@ -7270,7 +7301,7 @@ function InvoiceDetail() {
               <span>
                 Phí phòng · {s.roomTypeName}
                 {s.daysStayed && s.daysInMonth && s.daysStayed < s.daysInMonth
-                  ? ` (${s.daysStayed}/${s.daysInMonth} ngày)`
+                  ? ` (${s.daysStayed}/${s.daysInMonth} ngày${formatStayPeriod(s) ? ` | ${formatStayPeriod(s)}` : ""})`
                   : ""}
               </span>
               <strong>{money(x.roomFee)}</strong>
@@ -7332,7 +7363,11 @@ function InvoiceDetail() {
               <span>Thời gian tính phí</span>
               <strong>
                 {s.daysStayed
-                  ? `${s.daysStayed}/${s.daysInMonth} ngày${s.daysStayed < s.daysInMonth ? " (vào giữa tháng)" : ""}`
+                  ? `${s.daysStayed}/${s.daysInMonth} ngày${
+                      s.daysStayed < s.daysInMonth
+                        ? ` | ${formatStayPeriod(s) || "vào giữa tháng"}`
+                        : ""
+                    }`
                   : "Trọn kỳ"}
               </strong>
             </div>

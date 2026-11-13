@@ -16,6 +16,7 @@ const scopes = {
     "payments",
     "applications",
     "requests",
+    "notifications",
     "activityLogs",
   ],
   catalogWrite: [
@@ -277,6 +278,17 @@ const nextSequentialId = (db, collection, prefix) => {
     if (item.id && typeof item.id === "string" && item.id.startsWith(prefix)) {
       const num = parseInt(item.id.slice(prefix.length), 10);
       if (!isNaN(num) && num > max) max = num;
+    }
+  }
+  if (db.activityLogs && prefix.startsWith("u-")) {
+    const regex = new RegExp(`${prefix}(\\d+)`, "g");
+    for (const log of db.activityLogs) {
+      const str = JSON.stringify(log);
+      let match;
+      while ((match = regex.exec(str)) !== null) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > max) max = num;
+      }
     }
   }
   return `${prefix}${max + 1}`;
@@ -2105,11 +2117,12 @@ async function userDelete(targetUserId, actor) {
       }
     }
 
-    // 6. Xóa tài khoản khỏi danh sách users
+    // 6. Xóa tài khoản khỏi danh sách users và xóa sạch toàn bộ thông báo của tài khoản này
     const userIndex = db.users.findIndex((u) => u.id === user.id);
     if (userIndex !== -1) {
       db.users.splice(userIndex, 1);
     }
+    db.notifications = (db.notifications || []).filter((n) => n.userId !== user.id);
 
     // 7. Ghi nhật ký hoạt động hệ thống
     logEvent(db, {

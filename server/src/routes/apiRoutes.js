@@ -4,6 +4,7 @@
 
 const express = require("express");
 const roomImages = require("../services/roomImages");
+const individualRoomImages = require("../services/individualRoomImages");
 const {
   send,
   auth,
@@ -43,6 +44,12 @@ r.get(
 r.get(
   "/roomTypes/:id/images",
   send((req) => roomImages.list(req.params.id)),
+);
+
+// Tuyến đường xem thư viện ảnh của từng phòng (Công khai cho khách và sinh viên)
+r.get(
+  "/rooms/:id/images",
+  send((req) => individualRoomImages.list(req.params.id)),
 );
 
 // Bắt buộc xác thực danh tính qua JWT Token từ điểm này trở xuống
@@ -390,6 +397,52 @@ r.delete(
   "/roomTypes/:id/images/:imageId",
   adminOnly,
   send((req) => roomImages.remove(req.params.id, req.params.imageId)),
+);
+
+// ==============================================================================
+// 9.1 QUẢN LÝ THƯ VIỆN ẢNH TỪNG PHÒNG (DÀNH CHO ADMIN)
+// ==============================================================================
+
+// Quản trị viên tải lên ảnh phòng mới
+r.post(
+  "/rooms/:id/images",
+  adminOnly,
+  express.raw({ type: () => true, limit: individualRoomImages.maxBytes }),
+  send((req) =>
+    individualRoomImages.upload(
+      req.params.id,
+      req.body,
+      req.headers["content-type"],
+      req.query.description,
+    ),
+  ),
+);
+
+// Quản trị viên chỉnh sửa mô tả hoặc chọn ảnh làm ảnh đại diện của phòng
+r.patch(
+  "/rooms/:id/images/:imageId",
+  adminOnly,
+  send((req) =>
+    individualRoomImages.update(req.params.id, req.params.imageId, req.body),
+  ),
+);
+
+// Quản trị viên cập nhật thứ tự hiển thị của các ảnh phòng
+r.put(
+  "/rooms/:id/images/order",
+  adminOnly,
+  send((req) =>
+    individualRoomImages.reorder(req.params.id, req.body.imageIds),
+  ),
+);
+
+// Quản trị viên xóa ảnh phòng
+r.delete(
+  "/rooms/:id/images/:imageId",
+  adminOnly,
+  send((req) =>
+    individualRoomImages.remove(req.params.id, req.params.imageId),
+  ),
 );
 
 // ==============================================================================

@@ -73,6 +73,31 @@ export async function uploadRoomImage(typeId, file, description = "") {
   return result.data;
 }
 
+// Hàm tải lên file ảnh nhị phân cho từng phòng cụ thể
+export async function uploadIndividualRoomImage(roomId, file, description = "") {
+  const token = localStorage.getItem("ktx_token");
+  let response;
+  try {
+    response = await fetch(
+      `/api/rooms/${encodeURIComponent(roomId)}/images?description=${encodeURIComponent(description)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: file,
+      },
+    );
+  } catch {
+    throw new Error("Không kết nối được máy chủ khi tải ảnh lên.");
+  }
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.success)
+    throw new Error(result.error || "Không thể tải ảnh lên.");
+  return result.data;
+}
+
 // Định dạng số tiền sang định dạng tiền tệ Việt Nam Đồng (VNĐ)
 export const money = (n) =>
   new Intl.NumberFormat("vi-VN", {

@@ -5,6 +5,7 @@ require("dotenv").config({
 const express = require("express");
 const cors = require("cors");
 const roomImages = require("./services/roomImages");
+const individualRoomImages = require("./services/individualRoomImages");
 const repo = require("./repositories");
 
 // Khởi tạo ứng dụng Express Server
@@ -17,6 +18,17 @@ app.use(cors({ origin: process.env.CLIENT_ORIGIN || "http://localhost:5173" }));
 app.use(
   "/api/uploads/room-types",
   express.static(roomImages.uploadDir, {
+    fallthrough: false,
+    immutable: true,
+    maxAge: "1y",
+    setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff"),
+  }),
+);
+
+// Cấu hình phục vụ các file ảnh tĩnh được tải lên cho từng phòng
+app.use(
+  "/api/uploads/rooms",
+  express.static(individualRoomImages.uploadDir, {
     fallthrough: false,
     immutable: true,
     maxAge: "1y",

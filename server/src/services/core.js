@@ -164,19 +164,13 @@ const validDuration = (value) => {
 };
 const endAfterMonths = (startDate, months) => {
   const start = new Date(`${validDate(startDate, "ngày bắt đầu")}T00:00:00Z`);
-  const year = start.getUTCFullYear();
-  const month = start.getUTCMonth();
-  const day = start.getUTCDate();
-  if (day <= 10) {
-    const endM = month + months - 1;
-    const eYear = year + Math.floor(endM / 12);
-    const eMonth = endM % 12;
-    const lastDay = new Date(Date.UTC(eYear, eMonth + 1, 0)).getUTCDate();
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${eYear}-${pad(eMonth + 1)}-${pad(lastDay)}`;
-  }
-  const target = new Date(Date.UTC(year, month + months, day));
-  target.setUTCDate(target.getUTCDate() - 1);
+  const target = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + Number(months), 1),
+  );
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  target.setUTCDate(Math.min(start.getUTCDate(), lastDay));
   return target.toISOString().slice(0, 10);
 };
 const addDays = (dateStr, days) => {
@@ -310,7 +304,12 @@ const getPeriodDateRange = (periodMonth) => {
 };
 
 const stayDaysInPeriod = (stay, periodStart, periodEnd, daysInMonth) => {
-  if (stay.status !== "ACTIVE" && stay.status !== "ENDED") return 0;
+  if (
+    stay.status !== "ACTIVE" &&
+    stay.status !== "ENDED" &&
+    stay.status !== "TRANSFERRED"
+  )
+    return 0;
   const stayEnd = stay.actualEndDate || stay.plannedEndDate || "9999-12-31";
   let effStart = stay.startDate;
   if (
@@ -647,9 +646,9 @@ async function catalogWrite(kind, body, targetId) {
     const existing = targetId ? one(db, kind, targetId) : null;
     const cleanBody = { ...body };
     delete cleanBody.id;
-    if (kind === "roomTypes") delete cleanBody.images;
+    if (kind === "roomTypes" || kind === "rooms") delete cleanBody.images;
     const value = { ...(existing || {}), ...cleanBody };
-    if (kind === "roomTypes" && !existing) value.images = [];
+    if ((kind === "roomTypes" || kind === "rooms") && !existing) value.images = [];
     validateCatalog(db, kind, value, existing);
     if (!existing) {
       value.id = id();
@@ -1117,13 +1116,31 @@ async function transfer(user, body) {
     if (!stay) fail("Sinh viên chưa có lượt lưu trú hoạt động.");
     const room = one(db, "rooms", required(body.roomId, "phòng mới"));
     if (room.id === stay.roomId) fail("Vui lòng chọn phòng khác.");
+
+    const currentRoom = one(db, "rooms", stay.roomId);
+    if (room.roomTypeId !== currentRoom.roomTypeId) {
+      fail("Chỉ được phép chuyển sang phòng cùng loại (cùng cấp phòng).");
+    }
+
     if (!roomAvailable(db, room, profile, room.roomTypeId))
       fail("Phòng mới không phù hợp hoặc đã đầy.");
+
     const date = validDate(body.date, "ngày chuyển");
-    if (date < stay.startDate) fail("Ngày chuyển không hợp lệ.");
+    if (!date.endsWith("-01")) {
+      fail("Ngày chuyển phòng phải là ngày đầu kỳ thu (ngày 01 của tháng).");
+    }
+    if (date <= stay.startDate) {
+      fail("Ngày chuyển phải sau ngày bắt đầu lưu trú hiện tại.");
+    }
+    if (stay.plannedEndDate && date > stay.plannedEndDate) {
+      fail(
+        `Ngày chuyển (${date}) vượt quá thời hạn lưu trú hiện tại (${stay.plannedEndDate}).`,
+      );
+    }
+
     const originalRoomId = stay.roomId;
     stay.status = "TRANSFERRED";
-    stay.actualEndDate = date;
+    stay.actualEndDate = addDays(date, -1);
     const next = {
       id: id(),
       studentId: profile.id,
@@ -1149,7 +1166,7 @@ async function transfer(user, body) {
       db,
       profile.userId,
       "Đã chuyển phòng",
-      `Phòng mới của bạn: ${room.code}.`,
+      `Phòng mới của bạn: ${room.code}. Hiệu lực từ: ${date}.`,
       "/stays",
     );
     const staffMember = db.staff?.find((s) => s.userId === user.id);
@@ -1160,7 +1177,7 @@ async function transfer(user, body) {
       actorRole: user.role || "STAFF",
       action: "CHUYỂN PHÒNG SINH VIÊN",
       title: `${staffMember?.fullName || "Nhân viên"} đã phê duyệt chuyển phòng`,
-      body: `Chuyển sinh viên ${profile.fullName} (${profile.studentCode || "—"}) từ phòng ${fromRoom?.code || "—"} sang phòng ${room.code}. Lý do: "${item.reason}".`,
+      body: `Chuyển sinh viên ${profile.fullName} (${profile.studentCode || "—"}) từ phòng ${fromRoom?.code || "—"} sang phòng ${room.code}. Hiệu lực từ kỳ ${date}. Lý do: "${item.reason}".`,
       target: `Phòng ${room.code}`,
       tone: "purple",
     });
@@ -1517,7 +1534,10 @@ function billingPreview(db, periodId) {
 
       if (
         db.invoices.some(
-          (x) => x.studentId === stay.studentId && x.periodId === periodId,
+          (x) =>
+            x.studentId === stay.studentId &&
+            x.roomId === stay.roomId &&
+            x.periodId === periodId,
         )
       ) {
         return;

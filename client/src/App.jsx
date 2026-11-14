@@ -62,6 +62,7 @@ import {
 import { api, money, date, dateTime, labels } from "./services/api";
 import * as XLSX from "xlsx";
 import RoomTypeEditor from "./components/RoomTypeEditor";
+import RoomEditor from "./components/RoomEditor";
 import RoomGallery, { coverOf } from "./components/RoomGallery";
 import LandingPage from "./pages/LandingPage";
 import LandingNav from "./components/landing/LandingNav";
@@ -2626,21 +2627,7 @@ function StayRequestModal({
   };
 
   const calcEndAfterMonths = (startDateStr, m) => {
-    const start = new Date(`${startDateStr}T00:00:00Z`);
-    const year = start.getUTCFullYear();
-    const month = start.getUTCMonth();
-    const day = start.getUTCDate();
-    if (day <= 10) {
-      const endM = month + m - 1;
-      const eYear = year + Math.floor(endM / 12);
-      const eMonth = endM % 12;
-      const lastDay = new Date(Date.UTC(eYear, eMonth + 1, 0)).getUTCDate();
-      const pad = (n) => String(n).padStart(2, "0");
-      return `${eYear}-${pad(eMonth + 1)}-${pad(lastDay)}`;
-    }
-    const target = new Date(Date.UTC(year, month + m, day));
-    target.setUTCDate(target.getUTCDate() - 1);
-    return target.toISOString().slice(0, 10);
+    return endAfterMonths(startDateStr, m);
   };
 
   // Tính ngày bắt đầu chu kỳ mới & ngày dự kiến kết thúc theo đúng nghiệp vụ
@@ -3180,7 +3167,7 @@ function Dashboard() {
                   </div>
                   <div>
                     <div className="stay-alert-title">
-                      ⏳ SẮP HẾT HẠN LƯU TRÚ CHU KỲ (CÒN {stayDiffDays} NGÀY)
+                      SẮP HẾT HẠN LƯU TRÚ CHU KỲ (CÒN {stayDiffDays} NGÀY)
                     </div>
                     <p className="stay-alert-desc">
                       Chu kỳ lưu trú phòng <strong>{active.room?.code}</strong> sẽ kết thúc vào ngày{" "}
@@ -3358,6 +3345,11 @@ function Dashboard() {
                     key: "period",
                     label: "Kỳ thu",
                     render: (x) => x.period?.month,
+                  },
+                  {
+                    key: "room",
+                    label: "Phòng",
+                    render: (x) => x.snapshot?.roomCode || x.room?.code || "—",
                   },
                   {
                     key: "total",
@@ -3864,9 +3856,9 @@ function RoomCatalog() {
   const visibleRooms = roomList.slice((page - 1) * 6, page * 6);
   const isAdmin = session?.user.role === "ADMIN",
     isStaff = session?.user.role === "STAFF" || isAdmin;
-  const save = async (v) => {
-    await api(edit?.id ? `/rooms/${edit.id}` : "/rooms", {
-      method: edit?.id ? "PATCH" : "POST",
+  const save = async (v, targetId = edit?.id) => {
+    const saved = await api(targetId ? `/rooms/${targetId}` : "/rooms", {
+      method: targetId ? "PATCH" : "POST",
       body: isAdmin
         ? {
             ...v,
@@ -3879,9 +3871,9 @@ function RoomCatalog() {
             status: v.status,
           },
     });
-    setEdit(null);
     cat.load();
     notice("Đã lưu thông tin phòng.");
+    return saved;
   };
   const roomFields = [
     { label: "Mã phòng", name: "code", required: true },
@@ -4088,11 +4080,11 @@ function RoomCatalog() {
                       <BedDouble size={44} strokeWidth={1.2} />
                       <span>Ảnh phòng đang cập nhật</span>
                     </div>
-                    {coverOf(x.roomType) && (
+                    {(coverOf(x) || coverOf(x.roomType)) && (
                       <img
                         className="room-card-image"
-                        src={coverOf(x.roomType).url}
-                        alt={x.roomType?.name}
+                        src={(coverOf(x) || coverOf(x.roomType)).url}
+                        alt={`Phòng ${x.code}`}
                         loading="lazy"
                         onError={(event) => {
                           event.currentTarget.style.display = "none";
@@ -4222,21 +4214,32 @@ function RoomCatalog() {
         )}
         {edit && (
           <Modal
-            title={edit.id ? "Cập nhật phòng" : "Thêm phòng mới"}
+            title={edit.id ? `Cập nhật phòng ${edit.code || ""}` : "Thêm phòng mới"}
             onClose={() => setEdit(null)}
+            wide={isAdmin}
           >
-            <Form
-              fields={
-                isAdmin
-                  ? roomFields
-                  : roomFields.filter((f) =>
-                      ["operationalCapacity", "status"].includes(f.name),
-                    )
-              }
-              initial={edit}
-              onSave={save}
-              onCancel={() => setEdit(null)}
-            />
+            {isAdmin ? (
+              <RoomEditor
+                key={edit.id || "new"}
+                initial={edit}
+                fields={roomFields}
+                onSaveRoom={save}
+                onChanged={cat.load}
+                onClose={() => setEdit(null)}
+              />
+            ) : (
+              <Form
+                fields={roomFields.filter((f) =>
+                  ["operationalCapacity", "status"].includes(f.name),
+                )}
+                initial={edit}
+                onSave={async (v) => {
+                  await save(v);
+                  setEdit(null);
+                }}
+                onCancel={() => setEdit(null)}
+              />
+            )}
           </Modal>
         )}
         <Toast message={message} onClose={() => clear(null)} />
@@ -5687,12 +5690,22 @@ function StudentDetail() {
     </>
   );
 }
-// Đây là ghi chú mẫu: Modal tạo lượt chuyển phòng cho sinh viên kèm tính năng tìm kiếm thông minh và kiểm tra giới tính/chỗ trống
+// Helper tính ngày đầu của chu kỳ kế tiếp (ngày 01 tháng sau)
+const getNextCycleStartDate = (refDateStr) => {
+  const base = new Date(
+    `${refDateStr || new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+  );
+  const year = base.getUTCFullYear();
+  const month = base.getUTCMonth();
+  return new Date(Date.UTC(year, month + 1, 1)).toISOString().slice(0, 10);
+};
+
+// Đây là ghi chú mẫu: Modal tạo lượt chuyển phòng cho sinh viên kèm tính năng tìm kiếm thông minh và kiểm tra giới tính/chỗ trống/cùng cấp
 function TransferModal({ onClose, onSuccess, students, catalog }) {
   const [studentId, setStudentId] = useState("");
   const [roomId, setRoomId] = useState("");
   const [transferDate, setTransferDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
+    getNextCycleStartDate(new Date().toISOString().slice(0, 10)),
   );
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -5735,7 +5748,7 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
       return {
         value: s.id,
         label: `${s.fullName} · MSSV: ${s.studentCode}`,
-        sublabel: `Phòng hiện tại: ${roomCode}${bldgName ? ` (${bldgName})` : ""} · Giới tính: ${s.gender === "FEMALE" ? "Nữ" : "Nam"}`,
+        sublabel: `Phòng hiện tại: ${roomCode}${bldgName ? ` (${bldgName})` : ""} · Loại phòng: ${room?.roomType?.name || "—"} · Giới tính: ${s.gender === "FEMALE" ? "Nữ" : "Nam"}`,
         badge: roomCode !== "—" ? `Phòng ${roomCode}` : "",
         studentCode: s.studentCode,
         fullName: s.fullName,
@@ -5743,8 +5756,61 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
     });
   }, [residentStudents, catalog.data?.rooms]);
 
+  // Tự động tính toán các chu kỳ hợp lệ cho sinh viên:
+  // Luôn bắt đầu vào ngày 01 của các tháng tiếp theo trong thời hạn lưu trú
+  const cycleOptions = useMemo(() => {
+    if (!selectedStudent?.stay) return [];
+    const stay = selectedStudent.stay;
+    const start = new Date(`${stay.startDate}T00:00:00Z`);
+    // Chu kỳ sớm nhất sau ngày vào ở (ngày 01 tháng sau ngày startDate)
+    const firstCycle = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1),
+    );
+    const plannedEnd = stay.plannedEndDate || "9999-12-31";
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const nextCycleFromToday = getNextCycleStartDate(todayStr);
+
+    const options = [];
+    let cur = new Date(firstCycle);
+    let count = 0;
+    while (cur.toISOString().slice(0, 10) <= plannedEnd && count < 24) {
+      count++;
+      const val = cur.toISOString().slice(0, 10);
+      const [y, m] = val.split("-");
+      const isNextCycle = val === nextCycleFromToday;
+      options.push({
+        value: val,
+        label: `Kỳ ${m}/${y} (Hiệu lực từ 01/${m}/${y})${isNextCycle ? " ★ Chu kỳ kế tiếp hiện tại" : ""}`,
+        isNextCycle,
+      });
+      cur.setUTCMonth(cur.getUTCMonth() + 1);
+    }
+    return options;
+  }, [selectedStudent]);
+
+  // Helper chọn chu kỳ mặc định phù hợp nhất
+  const getDefaultCycle = (opts) => {
+    if (!opts || !opts.length) return "";
+    const matched = opts.find((o) => o.isNextCycle);
+    if (matched) return matched.value;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const upcoming = opts.find((o) => o.value >= todayStr);
+    if (upcoming) return upcoming.value;
+    return opts[0].value;
+  };
+
+  // Tự động cập nhật ngày chuyển phòng theo chu kỳ mới khi đổi sinh viên
+  useEffect(() => {
+    if (cycleOptions.length > 0) {
+      if (!cycleOptions.some((o) => o.value === transferDate)) {
+        setTransferDate(getDefaultCycle(cycleOptions));
+      }
+    }
+  }, [cycleOptions]);
+
   // Tự động lọc phòng phù hợp cho sinh viên:
   // - Khác phòng hiện tại của sinh viên
+  // - Chỉ cho phép phòng CÙNG CẤP (cùng loại phòng / roomTypeId)
   // - Đúng giới tính (hoặc loại phòng ANY)
   // - Còn chỗ trống (vacant > 0)
   // - Phòng và tòa nhà đang ACTIVE
@@ -5754,6 +5820,15 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
       selectedStudent.stay?.roomId ||
       selectedStudent.roomId ||
       selectedStudent.room?.id;
+    const currentRoom = (catalog.data?.rooms || []).find(
+      (r) => r.id === currentRoomId,
+    );
+    const currentRoomTypeId =
+      currentRoom?.roomTypeId ||
+      currentRoom?.roomType?.id ||
+      selectedStudentRoom?.roomTypeId ||
+      selectedStudentRoom?.roomType?.id;
+
     return catalog.data.rooms.filter((r) => {
       if (r.status !== "ACTIVE" || r.building?.status !== "ACTIVE")
         return false;
@@ -5766,9 +5841,16 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
         roomGender !== selectedStudent.gender
       )
         return false;
+      // Chỉ cho phép chuyển sang phòng cùng cấp
+      if (
+        currentRoomTypeId &&
+        r.roomTypeId !== currentRoomTypeId &&
+        r.roomType?.id !== currentRoomTypeId
+      )
+        return false;
       return true;
     });
-  }, [catalog.data?.rooms, selectedStudent]);
+  }, [catalog.data?.rooms, selectedStudent, selectedStudentRoom]);
 
   const roomOptions = useMemo(() => {
     return availableRooms.map((r) => ({
@@ -5810,7 +5892,7 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
 
     if (
       !window.confirm(
-        `Xác nhận chuyển sinh viên ${selectedStudent?.fullName} (${selectedStudent?.studentCode}) từ phòng ${selectedStudentRoom?.code || "cũ"} sang phòng ${selectedRoom?.code}?`,
+        `Xác nhận chuyển sinh viên ${selectedStudent?.fullName} (${selectedStudent?.studentCode}) từ phòng ${selectedStudentRoom?.code || "cũ"} sang phòng ${selectedRoom?.code} kể từ ngày ${transferDate}?`,
       )
     ) {
       return;
@@ -5912,21 +5994,21 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
                 <strong>Loại phòng:</strong>{" "}
                 {selectedStudentRoom?.roomType?.name || "—"}
               </div>
+              <div>
+                <strong>Thời hạn lưu trú:</strong>{" "}
+                {date(selectedStudent.stay?.startDate)} →{" "}
+                {date(selectedStudent.stay?.plannedEndDate)}
+              </div>
               {selectedStudent.phone && (
                 <div>
                   <strong>SĐT:</strong> {selectedStudent.phone}
-                </div>
-              )}
-              {selectedStudent.email && (
-                <div>
-                  <strong>Email:</strong> {selectedStudent.email}
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Bước 2: Chọn phòng mới phù hợp giới tính */}
+        {/* Bước 2: Chọn phòng mới phù hợp giới tính và cùng cấp */}
         <div className="field">
           <span>
             Phòng mới chuyển đến <em>*</em>
@@ -5943,13 +6025,14 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
               }}
             >
               Vui lòng chọn sinh viên ở trên trước để hệ thống tự lọc danh sách
-              phòng phù hợp theo giới tính.
+              phòng cùng cấp và phù hợp theo giới tính.
             </div>
           ) : availableRooms.length === 0 ? (
             <div className="inline-error" style={{ margin: 0 }}>
-              Hiện không có phòng nào phù hợp giới tính (
-              {selectedStudent.gender === "FEMALE" ? "Nữ" : "Nam"}) còn chỗ
-              trống.
+              Hiện không có phòng nào cùng cấp (
+              <strong>{selectedStudentRoom?.roomType?.name || "cùng loại"}</strong>
+              ) phù hợp giới tính (
+              {selectedStudent.gender === "FEMALE" ? "Nữ" : "Nam"}) còn chỗ trống.
             </div>
           ) : (
             <SearchableSelect
@@ -5958,7 +6041,7 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
               onChange={(newId) => setRoomId(newId)}
               options={roomOptions}
               placeholder="Nhập mã phòng hoặc tên tòa nhà"
-              emptyText="Không tìm thấy phòng phù hợp"
+              emptyText="Không tìm thấy phòng phù hợp cùng cấp"
             />
           )}
         </div>
@@ -5993,17 +6076,63 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
           </div>
         )}
 
-        {/* Bước 3: Ngày chuyển */}
+        {/* Thông báo nếu sinh viên đang ở tháng cuối và không còn chu kỳ kế tiếp */}
+        {selectedStudent && cycleOptions.length === 0 && (
+          <div className="inline-error" style={{ margin: 0 }}>
+            ⚠️ Lượt lưu trú của sinh viên sẽ kết thúc vào ngày{" "}
+            <strong>{date(selectedStudent.stay?.plannedEndDate)}</strong>.
+            Hiện không còn chu kỳ mới trong thời hạn này để chuyển phòng.
+            Sinh viên vui lòng thực hiện Gia hạn hoặc Đăng ký phòng mới.
+          </div>
+        )}
+
+        {/* Bước 3: Ngày chuyển (Tự động theo chu kỳ mới của sinh viên) */}
         <div className="field">
           <span>
-            Ngày chuyển <em>*</em>
+            Kỳ chuyển phòng có hiệu lực <em>*</em>
           </span>
-          <input
-            type="date"
-            required
-            value={transferDate}
-            onChange={(e) => setTransferDate(e.target.value)}
-          />
+          {selectedStudent && cycleOptions.length > 0 ? (
+            <select
+              value={transferDate}
+              onChange={(e) => setTransferDate(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "9px 12px",
+                borderRadius: "8px",
+                border: "1px solid #cfdcde",
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#1f3a46",
+                background: "#fff",
+              }}
+            >
+              {cycleOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="date"
+              required
+              value={transferDate}
+              onChange={(e) => setTransferDate(e.target.value)}
+              disabled={selectedStudent && cycleOptions.length === 0}
+            />
+          )}
+          <small
+            style={{
+              color: "#6b7280",
+              fontSize: "12.5px",
+              marginTop: "4px",
+              display: "block",
+            }}
+          >
+            ℹ️ Chuyển phòng có hiệu lực từ ngày 01 của chu kỳ kế tiếp để thuận
+            tiện cho việc chốt số điện nước và lập hóa đơn riêng biệt từng phòng
+            cũ và phòng mới.
+          </small>
         </div>
 
         {/* Bước 4: Lý do chuyển */}
@@ -6038,7 +6167,13 @@ function TransferModal({ onClose, onSuccess, students, catalog }) {
           <button
             type="submit"
             className="button button-primary"
-            disabled={busy || !studentId || !roomId || !reason.trim()}
+            disabled={
+              busy ||
+              !studentId ||
+              !roomId ||
+              !reason.trim() ||
+              (selectedStudent && cycleOptions.length === 0)
+            }
           >
             {busy ? "Đang xử lý..." : "Xác nhận chuyển phòng"}
             <ArrowRight size={16} />
@@ -6973,7 +7108,7 @@ function BillingPage() {
                   {
                     key: "roomId",
                     label: "Phòng",
-                    render: (x) => x.snapshot.roomCode,
+                    render: (x) => x.snapshot?.roomCode || x.room?.code || "—",
                   },
                   {
                     key: "stayDays",
@@ -7205,7 +7340,7 @@ function InvoicesPage() {
                 {
                   key: "room",
                   label: "Phòng",
-                  render: (x) => x.snapshot.roomCode,
+                  render: (x) => x.snapshot?.roomCode || x.room?.code || "—",
                 },
                 {
                   key: "total",
@@ -7264,7 +7399,7 @@ function InvoiceDetail() {
       </button>
       <PageTitle
         kicker={`HÓA ĐƠN · ${x.period?.month}`}
-        title={`Khoản thu phòng ${s.roomCode}`}
+        title={`Khoản thu phòng ${s?.roomCode || x.room?.code || "—"}`}
         description={`Hạn thanh toán: ${date(x.dueDate)}`}
         action={badge(x.status)}
       />

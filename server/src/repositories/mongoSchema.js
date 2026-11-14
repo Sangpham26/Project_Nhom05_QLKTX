@@ -49,7 +49,9 @@ const definitions = {
       roomTypeId: "string",
       designCapacity: "number",
       operationalCapacity: "number",
+      floor: "number",
       status: "string",
+      images: "array",
     },
   },
   applications: {
@@ -231,8 +233,8 @@ const indexes = {
   pricing: [[{ effectiveFrom: -1 }, { name: "pricing_effective_date" }]],
   invoices: [
     [
-      { studentId: 1, periodId: 1 },
-      { unique: true, name: "invoice_student_period_unique" },
+      { studentId: 1, roomId: 1, periodId: 1 },
+      { unique: true, name: "invoice_student_room_period_unique" },
     ],
     [{ roomId: 1, periodId: 1 }, { name: "invoice_room_period" }],
   ],

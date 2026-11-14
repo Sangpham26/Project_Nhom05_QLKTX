@@ -170,9 +170,14 @@
   aspect-ratio: 4 / 3;
   background: var(--raised);
   border-radius: 0;
+  overflow: hidden;
 }
 .room-catalog .room-type-card-media img {
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 .room-catalog .room-type-card-placeholder {
   color: var(--muted);
@@ -265,11 +270,14 @@
   aspect-ratio: 4 / 3;
   background: var(--raised);
   border-radius: 0;
+  overflow: hidden;
 }
 .room-catalog .room-card-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 .catalog-room-placeholder {
   display: flex;

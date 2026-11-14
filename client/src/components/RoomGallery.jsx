@@ -38,34 +38,70 @@ function Placeholder({ failed, onRetry }) {
 }
 
 export default function RoomGallery({ type, room, rooms = [], children }) {
-  const [images, setImages] = useState(
-    [...(type?.images || [])].sort((a, b) => a.order - b.order),
+  const initialImages = useMemo(() => {
+    if (room?.images?.length) return [...room.images].sort((a, b) => a.order - b.order);
+    return [...(type?.images || [])].sort((a, b) => a.order - b.order);
+  }, [room?.images, type?.images]);
+
+  const [images, setImages] = useState(initialImages);
+  const [isRoomImages, setIsRoomImages] = useState(Boolean(room?.images?.length));
+  const [activeId, setActiveId] = useState(
+    coverOf(room?.images?.length ? room : type)?.id || null,
   );
-  const [activeId, setActiveId] = useState(coverOf(type)?.id || null);
-  const [loading, setLoading] = useState(Boolean(coverOf(type)));
+  const [loading, setLoading] = useState(
+    Boolean(coverOf(room?.images?.length ? room : type)),
+  );
   const [broken, setBroken] = useState(false);
   const [retry, setRetry] = useState(0);
   const [loadError, setLoadError] = useState("");
   const [failedThumbs, setFailedThumbs] = useState(new Set());
+
   useEffect(() => {
     let alive = true;
-    setImages([...(type?.images || [])].sort((a, b) => a.order - b.order));
-    setActiveId(coverOf(type)?.id || null);
     setLoadError("");
-    api(`/roomTypes/${type.id}/images`)
-      .then((items) => {
-        if (!alive) return;
-        const sorted = [...items].sort((a, b) => a.order - b.order);
-        setImages(sorted);
-        setActiveId((sorted.find((x) => x.isCover) || sorted[0])?.id || null);
-      })
-      .catch((error) => {
-        if (alive) setLoadError(error.message);
-      });
+
+    function fetchTypeImages() {
+      setIsRoomImages(false);
+      const sorted = [...(type?.images || [])].sort((a, b) => a.order - b.order);
+      setImages(sorted);
+      setActiveId((sorted.find((x) => x.isCover) || sorted[0])?.id || null);
+      if (!type?.id) return;
+      api(`/roomTypes/${type.id}/images`)
+        .then((items) => {
+          if (!alive) return;
+          const s = [...items].sort((a, b) => a.order - b.order);
+          setImages(s);
+          setActiveId((s.find((x) => x.isCover) || s[0])?.id || null);
+        })
+        .catch((error) => {
+          if (alive) setLoadError(error.message);
+        });
+    }
+
+    if (room?.id) {
+      api(`/rooms/${room.id}/images`)
+        .then((roomItems) => {
+          if (!alive) return;
+          if (roomItems && roomItems.length > 0) {
+            const sorted = [...roomItems].sort((a, b) => a.order - b.order);
+            setImages(sorted);
+            setActiveId((sorted.find((x) => x.isCover) || sorted[0])?.id || null);
+            setIsRoomImages(true);
+          } else {
+            fetchTypeImages();
+          }
+        })
+        .catch(() => {
+          if (alive) fetchTypeImages();
+        });
+    } else if (type?.id) {
+      fetchTypeImages();
+    }
+
     return () => {
       alive = false;
     };
-  }, [type.id]);
+  }, [type?.id, room?.id]);
   const active = images.find((x) => x.id === activeId) || images[0];
   useEffect(() => {
     setLoading(Boolean(active));
@@ -92,6 +128,18 @@ export default function RoomGallery({ type, room, rooms = [], children }) {
   return (
     <div className="room-gallery-layout">
       <div className="room-gallery-media">
+        {room && (
+          <div style={{ marginBottom: "8px" }}>
+            <span
+              className={`badge ${isRoomImages ? "badge-success" : "badge-subtle"}`}
+              style={{ fontSize: "12px", padding: "3px 10px", margin: 0 }}
+            >
+              {isRoomImages
+                ? `Ảnh thực tế phòng ${room.code}`
+                : `Ảnh mẫu loại phòng ${type?.name || ""}`}
+            </span>
+          </div>
+        )}
         <div className="gallery-main">
           {active && !broken && (
             <img

@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "docx": "^9.15.3",
+    "docx": "^9.16.0",
     "playwright": "^1.63.0"
   }
 }

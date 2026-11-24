@@ -6,7 +6,15 @@ const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const maxBytes = 5 * 1024 * 1024;
 const sorted = images => [...(images || [])].sort((a, b) => a.order - b.order);
 
-export default function RoomTypeEditor({ initial, fields, onSaveType, onChanged, onClose }) {
+export default function RoomTypeEditor({
+  initial,
+  fields,
+  onSaveType,
+  onChanged,
+  onClose,
+  onDelete,
+  deleteLabel = "Xóa loại phòng",
+}) {
   const [entity, setEntity] = useState(initial);
   const [values, setValues] = useState(initial);
   const [images, setImages] = useState(sorted(initial.images));
@@ -119,6 +127,48 @@ export default function RoomTypeEditor({ initial, fields, onSaveType, onChanged,
     </div>
     {error && <div className="inline-error">{error}</div>}
     {fileErrors.length > 0 && <div className="inline-error">{fileErrors.map((message, index) => <div key={index}>{message}</div>)}</div>}
-    <div className="modal-actions"><button type="button" className="button button-ghost" onClick={onClose}>Đóng</button><button className="button button-primary" disabled={busy}>{busy ? 'Đang lưu và tải ảnh...' : 'Lưu loại phòng và ảnh'}</button></div>
+    <div
+      className="modal-actions"
+      style={
+        onDelete && entity?.id
+          ? {
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }
+          : undefined
+      }
+    >
+      {onDelete && entity?.id && (
+        <button
+          type="button"
+          className="button button-danger"
+          style={{
+            background: "#fff1f2",
+            color: "#dc2626",
+            borderColor: "#fecdd3",
+            marginRight: "auto",
+          }}
+          onClick={onDelete}
+        >
+          <Trash2 size={16} />
+          {deleteLabel}
+        </button>
+      )}
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          marginLeft: onDelete && entity?.id ? "auto" : undefined,
+        }}
+      >
+        <button type="button" className="button button-ghost" onClick={onClose}>
+          Đóng
+        </button>
+        <button className="button button-primary" disabled={busy}>
+          {busy ? "Đang lưu và tải ảnh..." : "Lưu loại phòng và ảnh"}
+        </button>
+      </div>
+    </div>
   </form>;
 }

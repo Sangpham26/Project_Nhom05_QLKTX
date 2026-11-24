@@ -370,6 +370,9 @@
 .room-catalog .gallery-actions {
   margin-top: 30px;
 }
+.room-catalog .gallery-actions :is(.button-primary, a.button-primary) {
+  color: #ffffff !important;
+}
 .room-catalog .button {
   white-space: normal;
 }
@@ -440,11 +443,10 @@
   padding-inline: var(--work-content-gutter);
 }
 .main-area .topbar {
-  width: calc(
-    min(100%, var(--work-content-width)) - var(--work-content-gutter) * 2
-  );
-  margin-inline: auto;
-  padding-inline: clamp(14px, 2vw, 26px);
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  padding-inline: clamp(18px, 2.5vw, 35px);
 }
 .sidebar-heading {
   display: flex;

@@ -1,4 +1,4 @@
-﻿// ==============================================================================
+// ==============================================================================
 // SCRIPT KHỞI TẠO DỮ LIỆU HỆ THỐNG THẬT (REALISTIC 6-MONTH PRODUCTION DATA)
 // Quy mô: 30 Sinh viên, 2 Nhân viên, 2 Quản trị viên, 12 Phòng, 6 Kỳ thu phí
 // ==============================================================================
@@ -980,11 +980,12 @@ periods.forEach((p, pIdx) => {
       // - Tháng 10: 10 sinh viên đã đóng đủ (PAID), 5 sinh viên trả 1 phần (PARTIAL), còn lại chưa đóng (UNPAID)
       if (pIdx < 4) {
         // Tháng 5 - 8: Đã thanh toán 100%
+        const payDate = `${p.month}-10`;
         payments.push({
           id: `pay-${invId}-1`,
           invoiceId: invId,
           amount: totalStudent,
-          date: `${p.month}-10`,
+          date: payDate,
           method: oIdx % 2 === 0 ? "TRANSFER" : "CASH",
           note: "Đã thu đủ đúng hạn",
           recordedBy: "u-staff-2",
@@ -993,22 +994,24 @@ periods.forEach((p, pIdx) => {
         // Tháng 9:
         if (oIdx === 0 && (roomId === "room-A101" || roomId === "room-B101")) {
           // Trả một phần
+          const payDate = `${p.month}-12`;
           payments.push({
             id: `pay-${invId}-1`,
             invoiceId: invId,
             amount: 500000,
-            date: `${p.month}-12`,
+            date: payDate,
             method: "TRANSFER",
             note: "Nộp đợt 1 tiền phòng",
             recordedBy: "u-staff-2",
           });
         } else {
           // Đóng đủ
+          const payDate = `${p.month}-15`;
           payments.push({
             id: `pay-${invId}-1`,
             invoiceId: invId,
             amount: totalStudent,
-            date: `${p.month}-15`,
+            date: payDate,
             method: "TRANSFER",
             note: "Thanh toán qua chuyển khoản ngân hàng",
             recordedBy: "u-staff-2",
@@ -1018,11 +1021,12 @@ periods.forEach((p, pIdx) => {
         // Tháng 10 (Kỳ hiện hành):
         if (oIdx === 0) {
           // Đã đóng đủ
+          const payDate = `${p.month}-05`;
           payments.push({
             id: `pay-${invId}-1`,
             invoiceId: invId,
             amount: totalStudent,
-            date: `${p.month}-05`,
+            date: payDate,
             method: "TRANSFER",
             note: "Đã thu đủ kỳ tháng 10",
             recordedBy: "u-staff-2",
@@ -1033,11 +1037,12 @@ periods.forEach((p, pIdx) => {
           roomId !== "room-B202"
         ) {
           // Đóng 1 phần
+          const payDate = `${p.month}-10`;
           payments.push({
             id: `pay-${invId}-1`,
             invoiceId: invId,
             amount: 400000,
-            date: `${p.month}-10`,
+            date: payDate,
             method: "CASH",
             note: "Đóng trước tiền phòng mặt",
             recordedBy: "u-staff-2",

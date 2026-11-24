@@ -9,4 +9,5 @@ import './styles/theme.css';
 import './styles/landing-header.css';
 import './styles/landing-redesign.css';
 import './styles/public-pages.css';
+import './styles/dashboard.css';
 createRoot(document.getElementById('root')).render(<BrowserRouter><App /></BrowserRouter>);

@@ -122,9 +122,9 @@ a:hover, button:hover, *[role="button"]:hover { text-decoration: none !important
 .page-title p, .section-head p { line-height: 1.6; }
 
 /* Đây là ghi chú mẫu: Thiết kế button theo tông màu #222222 và hiệu ứng tương phản cao */
-.button-primary, .button-dark { background: #222222; color: #fff; border-color: #222222; }
-.button-primary:hover, .button-dark:hover { background: #383838; color: #fff; border-color: #383838; }
-.button-primary:active, .button-dark:active { background: #141414; }
+.button-primary, .button-dark, a.button-primary, a.button-dark { background: #222222; color: #ffffff !important; border-color: #222222; }
+.button-primary:hover, .button-dark:hover, a.button-primary:hover, a.button-dark:hover { background: #383838; color: #ffffff !important; border-color: #383838; }
+.button-primary:active, .button-dark:active, a.button-primary:active, a.button-dark:active { background: #141414; color: #ffffff !important; }
 .button-secondary { background: var(--raised); border-color: var(--border); color: var(--text); }
 .button-secondary:hover { background: var(--raised-hover); border-color: #cbd5e1; }
 .button-outline, .button-ghost { background: var(--raised); border-color: var(--border); color: var(--text); }
@@ -155,7 +155,18 @@ a:hover, button:hover, *[role="button"]:hover { text-decoration: none !important
 .occupancy-ring > div { background: var(--surface); }
 .bar-track { background: var(--raised); }
 .bar-track span { background: var(--accent); }
-.table-wrap th { background: #edf3fb; color: #465d79; }
+.table-wrap th { background: #edf3fb; color: #465d79; position: relative; }
+.table-wrap th:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: #9ab3cd;
+  pointer-events: none;
+}
 .table-wrap td { background: var(--surface); color: var(--muted); }
 .table-wrap tr.clickable:hover td { background: var(--raised-hover); }
 .row-arrow, .search-input svg { color: var(--subtle); }
@@ -197,11 +208,11 @@ a:hover, button:hover, *[role="button"]:hover { text-decoration: none !important
   background: transparent !important;
   color: #d97706 !important;
 }
-.badge-needs_info, .badge-overdue, .badge-rejected, .badge-inactive {
+.badge-needs_info, .badge-overdue, .badge-unpaid, .badge-rejected, .badge-inactive {
   background: transparent !important;
   color: #dc2626 !important;
 }
-.badge-unpaid, .badge-extend, .badge-return, .badge-water {
+.badge-extend, .badge-return, .badge-water {
   background: transparent !important;
   color: #475569 !important;
 }
@@ -439,20 +450,25 @@ html, body, * { scrollbar-width: none; }
   --accent: #222222;
   --accent-hover: #383838;
   --accent-soft: #f0f2f5;
-  top: 8px;
-  height: 62px;
-  margin: 8px 12px 0;
+  top: 0;
+  height: 64px;
+  margin: 0;
   border: 0;
-  border-radius: 19px;
-  background: transparent;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: #ffffff;
   color: var(--text);
-  box-shadow: inset 2px 2px 0 -2px rgba(255,255,255,.82), inset 0 0 3px 1px rgba(255,255,255,.72), 0 10px 32px rgba(21,54,96,.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-.topbar.is-scrolled { background: transparent; box-shadow: inset 2px 2px 0 -2px rgba(255,255,255,.9), inset 0 0 3px 1px rgba(255,255,255,.78), 0 12px 37px rgba(15,48,95,.16); }
+.topbar.is-scrolled {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 48, 95, 0.08);
+}
 .topbar::before, .top-popover::before { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 1px 1px 0 rgba(255,255,255,.78), inset -1px -1px 0 rgba(255,255,255,.34); pointer-events: none; }
 .topbar::after, .top-popover::after { content: ""; position: absolute; inset: 0; z-index: 0; overflow: hidden; border-radius: inherit; background: transparent; backdrop-filter: blur(6px) saturate(1.15); -webkit-backdrop-filter: blur(6px) saturate(1.15); pointer-events: none; }
+.topbar::before, .topbar::after { display: none; }
 .topbar > *, .top-popover > * { position: relative; z-index: 1; }
 .topbar .top-icon-button:hover, .topbar .top-icon-button[aria-expanded="true"] { background: rgba(255,255,255,.16); }
 .topbar .top-avatar { background: var(--accent-soft); color: var(--accent-hover); }
@@ -469,7 +485,7 @@ html, body, * { scrollbar-width: none; }
 .top-popover .popover-notification, .top-popover .popover-notification.read { background: transparent; }
 .top-popover .popover-notification:hover, .top-popover .top-popover-footer:hover,
 .top-popover.account-popover > a:hover, .top-popover.account-popover > button:hover { background: rgba(255,255,255,.16); }
-@media (max-width: 620px) { .topbar { height: 58px; margin-inline: 8px; } }
+@media (max-width: 620px) { .topbar { height: 58px; margin: 0; } }
 
 /* Đây là ghi chú mẫu: Trạng thái không viền, không nền hộp, giữ chấm tròn và màu chữ theo yêu cầu áp dụng toàn hệ thống */
 .badge {
@@ -502,11 +518,11 @@ html, body, * { scrollbar-width: none; }
   background: transparent !important;
   color: #d97706 !important;
 }
-.badge-needs_info, .badge-overdue, .badge-rejected, .badge-inactive {
+.badge-needs_info, .badge-overdue, .badge-unpaid, .badge-rejected, .badge-inactive {
   background: transparent !important;
   color: #dc2626 !important;
 }
-.badge-unpaid, .badge-extend, .badge-return, .badge-water {
+.badge-extend, .badge-return, .badge-water {
   background: transparent !important;
   color: #475569 !important;
 }
@@ -545,11 +561,11 @@ html, body, * { scrollbar-width: none; }
   background: transparent !important;
   color: #d97706 !important;
 }
-.badge-needs_info, .badge-overdue, .badge-rejected, .badge-inactive {
+.badge-needs_info, .badge-overdue, .badge-unpaid, .badge-rejected, .badge-inactive {
   background: transparent !important;
   color: #dc2626 !important;
 }
-.badge-unpaid, .badge-extend, .badge-return, .badge-water {
+.badge-extend, .badge-return, .badge-water {
   background: transparent !important;
   color: #475569 !important;
 }

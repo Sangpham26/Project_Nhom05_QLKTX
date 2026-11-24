@@ -487,4 +487,25 @@ for (const kind of ["buildings", "roomTypes", "rooms", "periods", "pricing"]) {
   );
 }
 
+// Quản trị viên xóa tòa nhà (chỉ khi không có sinh viên đang lưu trú và các phòng đều trống)
+r.delete(
+  "/buildings/:id",
+  adminOnly,
+  send((req) => s.buildingDelete(req.params.id, req.user)),
+);
+
+// Quản trị viên xóa phòng (chỉ khi phòng đang trống, không có sinh viên lưu trú)
+r.delete(
+  "/rooms/:id",
+  adminOnly,
+  send((req) => s.roomDelete(req.params.id, req.user)),
+);
+
+// Quản trị viên xóa loại phòng (chỉ khi không còn phòng hay hồ sơ liên kết)
+r.delete(
+  "/roomTypes/:id",
+  adminOnly,
+  send((req) => s.roomTypeDelete(req.params.id, req.user)),
+);
+
 module.exports = r;

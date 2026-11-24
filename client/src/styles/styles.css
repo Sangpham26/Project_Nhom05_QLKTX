@@ -721,12 +721,24 @@ h3 {
   background: #f8faf9;
   padding: 13px 12px;
   white-space: nowrap;
+  position: relative;
 }
 .table-wrap th:first-child {
   border-radius: 8px 0 0 8px;
 }
 .table-wrap th:last-child {
   border-radius: 0 8px 8px 0;
+}
+.table-wrap th:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: #9ab3cd;
+  pointer-events: none;
 }
 .table-wrap td {
   padding: 14px 12px;
@@ -784,12 +796,12 @@ h3 {
 }
 .badge-needs_info,
 .badge-overdue,
+.badge-unpaid,
 .badge-rejected,
 .badge-inactive {
   background: #fff0ec;
-  color: #bb6958;
+  color: #dc2626;
 }
-.badge-unpaid,
 .badge-extend,
 .badge-return {
   background: #eaf1f7;

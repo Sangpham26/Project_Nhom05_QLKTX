@@ -1,0 +1,264 @@
+/* ==============================================================================
+   STYLES FOR DASHBOARD: PENDING QUEUE & ACTIVITY TIMELINE
+   (Hồ sơ & Yêu cầu chờ xử lý + Nhật ký hoạt động hệ thống)
+   ============================================================================== */
+
+:root {
+  --dash-success: #16a34a;
+  --dash-success-bg: #ecfdf5;
+  --dash-success-border: #a7f3d0;
+  --dash-success-text: #065f46;
+
+  --dash-danger: #dc2626;
+  --dash-danger-bg: #fef2f2;
+  --dash-danger-border: #fecaca;
+  --dash-danger-text: #991b1b;
+
+  --dash-info: #2563eb;
+  --dash-info-bg: #eff6ff;
+  --dash-info-border: #bfdbfe;
+  --dash-info-text: #1e40af;
+}
+
+/* ==============================================================================
+   1. PENDING QUEUE (HỒ SƠ & YÊU CẦU CHỜ XỬ LÝ)
+   ============================================================================== */
+
+.pending-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+
+.pending-tab-btn {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.pending-tab-btn:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.pending-tab-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.pending-tab-count {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 11px;
+}
+
+.pending-tab-btn.active .pending-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.pending-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  transition: all 0.15s ease;
+}
+
+.pending-item-card:hover {
+  border-color: #cbd5e1;
+  background: var(--raised);
+}
+
+.pending-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pending-action-btn {
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.pending-action-btn.approve {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.pending-action-btn.approve:hover {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+}
+
+.pending-action-btn.reject {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.pending-action-btn.reject:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+/* Friendly empty state */
+.dash-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #ecfdf5;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.dash-empty-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.dash-empty-desc {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 320px;
+  margin: 0;
+}
+
+/* ==============================================================================
+   2. ACTIVITY TIMELINE SECTION (NHẬT KÝ HOẠT ĐỘNG THỜI GIAN THỰC)
+   ============================================================================== */
+
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.trans-filter-pill {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.trans-filter-pill:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.trans-filter-pill.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+.dash-filter-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.dash-filter-select:focus {
+  border-color: var(--text);
+}
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: all 0.15s ease;
+}
+
+.timeline-item:hover {
+  background: var(--raised);
+  border-color: #cbd5e1;
+}
+
+.timeline-node-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.timeline-node-icon.payment { background: #ecfdf5; color: #16a34a; }
+.timeline-node-icon.application { background: #eff6ff; color: #2563eb; }
+.timeline-node-icon.room { background: #f5f3ff; color: #7c3aed; }
+.timeline-node-icon.auth { background: #fef2f2; color: #dc2626; }
+.timeline-node-icon.system { background: #f1f5f9; color: #475569; }

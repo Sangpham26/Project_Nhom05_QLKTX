@@ -21,8 +21,10 @@ const {
   generatePrefixCode,
   nextSequentialId,
   student,
+  isStayActive,
   activeStay,
   occupants,
+  syncExpiredStays,
   getPeriodDateRange,
   stayDaysInPeriod,
   roomView,
@@ -41,6 +43,7 @@ const {
 } = common;
 
 async function catalog() {
+  await syncExpiredStays();
   const db = await repo.read(scopes.catalog);
   return {
     buildings: db.buildings,
@@ -167,7 +170,7 @@ async function buildingDelete(buildingId, actor) {
 
     // 2. Kiểm tra sinh viên đang lưu trú (ACTIVE stays)
     const activeStays = (db.stays || []).filter(
-      (s) => roomIds.includes(s.roomId) && s.status === "ACTIVE",
+      (s) => roomIds.includes(s.roomId) && isStayActive(s),
     );
     if (activeStays.length > 0) {
       const occupiedRoomsCount = new Set(activeStays.map((s) => s.roomId)).size;
@@ -258,7 +261,7 @@ async function roomDelete(roomId, actor) {
 
     // 1. Kiểm tra sinh viên đang lưu trú (ACTIVE stays)
     const activeStays = (db.stays || []).filter(
-      (s) => s.roomId === room.id && s.status === "ACTIVE",
+      (s) => s.roomId === room.id && isStayActive(s),
     );
     if (activeStays.length > 0) {
       fail(
@@ -349,7 +352,7 @@ async function roomTypeDelete(roomTypeId, actor) {
 
     // 2. Kiểm tra sinh viên đang lưu trú trong các phòng thuộc loại này
     const activeStays = (db.stays || []).filter(
-      (s) => roomIds.includes(s.roomId) && s.status === "ACTIVE",
+      (s) => roomIds.includes(s.roomId) && isStayActive(s),
     );
     if (activeStays.length > 0) {
       fail(

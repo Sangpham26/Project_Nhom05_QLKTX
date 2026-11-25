@@ -53,7 +53,14 @@ function AppRoutes() {
           )
         }
       />
-      <Route path="/contact" element={<ContactPage />} />
+      <Route
+        path="/contact"
+        element={
+          <Guard>
+            <ContactPage />
+          </Guard>
+        }
+      />
 
       {/* Authenticated Routes */}
       <Route

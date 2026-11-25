@@ -319,10 +319,37 @@ const nextSequentialId = (db, collection, prefix) => {
 const student = (db, user) =>
   db.students.find((x) => x.userId === user.id) ||
   fail("Không tìm thấy hồ sơ sinh viên.", 404);
+const isStayActive = (stay, refDate = today()) =>
+  Boolean(
+    stay &&
+      stay.status === "ACTIVE" &&
+      (!stay.actualEndDate || stay.actualEndDate >= refDate),
+  );
 const activeStay = (db, studentId) =>
-  db.stays.find((x) => x.studentId === studentId && x.status === "ACTIVE");
+  db.stays.find((x) => x.studentId === studentId && isStayActive(x));
 const occupants = (db, roomId) =>
-  db.stays.filter((x) => x.roomId === roomId && x.status === "ACTIVE").length;
+  db.stays.filter((x) => x.roomId === roomId && isStayActive(x)).length;
+const finalizeExpiredStays = (db, refDate = today()) => {
+  let changed = false;
+  for (const s of db.stays || []) {
+    if (s.status === "ACTIVE" && s.actualEndDate && s.actualEndDate < refDate) {
+      s.status = "ENDED";
+      changed = true;
+    }
+  }
+  return changed;
+};
+const syncExpiredStays = async () => {
+  const todayStr = today();
+  const db = await repo.read(["stays"]);
+  const hasExpired = (db.stays || []).some(
+    (s) => s.status === "ACTIVE" && s.actualEndDate && s.actualEndDate < todayStr,
+  );
+  if (!hasExpired) return false;
+  return repo.transaction(["stays"], (txDb) =>
+    finalizeExpiredStays(txDb, todayStr),
+  );
+};
 
 const getPeriodDateRange = (periodMonth) => {
   const [year, month] = periodMonth.split("-").map(Number);
@@ -540,8 +567,11 @@ module.exports = {
   generatePrefixCode,
   nextSequentialId,
   student,
+  isStayActive,
   activeStay,
   occupants,
+  finalizeExpiredStays,
+  syncExpiredStays,
   getPeriodDateRange,
   stayDaysInPeriod,
   roomView,

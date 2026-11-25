@@ -262,3 +262,21 @@
 .timeline-node-icon.room { background: #f5f3ff; color: #7c3aed; }
 .timeline-node-icon.auth { background: #fef2f2; color: #dc2626; }
 .timeline-node-icon.system { background: #f1f5f9; color: #475569; }
+
+/* Bảng lịch sử thanh toán ở Dashboard: cố định header khi cuộn */
+.dashboard-sticky-table {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.dashboard-sticky-table .table-wrap {
+  max-height: 300px;
+  overflow: auto;
+  margin-bottom: 0;
+}
+.dashboard-sticky-table .table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #edf3fb;
+  box-shadow: 0 1px 0 var(--border);
+}

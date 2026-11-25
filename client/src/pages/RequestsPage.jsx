@@ -498,7 +498,8 @@ function RequestsPage() {
         }
         action={
           own &&
-          current && (
+          current &&
+          !current.actualEndDate && (
             <button
               className="button button-primary"
               onClick={() => setForm(true)}

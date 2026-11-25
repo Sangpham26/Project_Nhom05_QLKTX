@@ -527,7 +527,39 @@ function Dashboard() {
       {role === "STUDENT" ? (
         <>
           {/* Cảnh báo hạn chu kỳ lưu trú (10 ngày báo trước, 3 ngày chữ đỏ, quá hạn màu #222222 và icon đỏ) */}
-          {active &&
+          {active && active.actualEndDate ? (
+            <div
+              className="stay-deadline-alert"
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #cbd5e1",
+              }}
+            >
+              <div className="stay-alert-content">
+                <div
+                  className="stay-alert-icon"
+                  style={{
+                    background: "#e2e8f0",
+                    color: "#334155",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  <Clock size={24} color="#334155" />
+                </div>
+                <div>
+                  <div className="stay-alert-title" style={{ color: "#0f172a" }}>
+                    ĐÃ DUYỆT TRẢ PHÒNG CUỐI CHU KỲ
+                  </div>
+                  <p className="stay-alert-desc" style={{ color: "#475569" }}>
+                    Yêu cầu trả phòng đã được phê duyệt. Bạn tiếp tục lưu trú tại
+                    phòng <strong>{active.room?.code}</strong> đến hết ngày{" "}
+                    <strong>{date(active.actualEndDate)}</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            active &&
             stayDiffDays !== null &&
             stayDiffDays <= 10 &&
             (isStayOverdue ? (
@@ -639,7 +671,7 @@ function Dashboard() {
                   </button>
                 </div>
               </div>
-            ))}
+            )))}
 
           <div className="metrics-grid">
             <Metric
@@ -949,14 +981,7 @@ function Dashboard() {
             }
           >
             {recentPayments.length ? (
-              <div
-                style={{
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                  border: "1px solid var(--border)",
-                  borderRadius: "3px",
-                }}
-              >
+              <div className="dashboard-sticky-table">
                 <Table
                   items={recentPayments}
                   columns={[

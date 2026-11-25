@@ -7,6 +7,7 @@ const cors = require("cors");
 const roomImages = require("./services/roomImages");
 const individualRoomImages = require("./services/individualRoomImages");
 const repo = require("./repositories");
+const { syncExpiredStays } = require("./services/common");
 
 // Khởi tạo ứng dụng Express Server
 const app = express();
@@ -74,7 +75,18 @@ app.use((error, req, res, next) => {
 // Thiết lập cổng hoạt động và khởi động máy chủ API
 const port = process.env.PORT || 4000;
 Promise.resolve(repo.ready?.())
-  .then(() => {
+  .then(async () => {
+    try {
+      await syncExpiredStays();
+    } catch (syncError) {
+      console.error("Sync expired stays failed:", syncError.message);
+    }
+    const timer = setInterval(() => {
+      syncExpiredStays().catch((err) =>
+        console.error("Scheduled sync expired stays failed:", err.message),
+      );
+    }, 3600000);
+    if (typeof timer.unref === "function") timer.unref();
     app.listen(port, () =>
       console.log("KTX API running at http://localhost:" + port),
     );

@@ -21,8 +21,10 @@ const {
   generatePrefixCode,
   nextSequentialId,
   student,
+  isStayActive,
   activeStay,
   occupants,
+  syncExpiredStays,
   getPeriodDateRange,
   stayDaysInPeriod,
   roomView,
@@ -275,6 +277,7 @@ async function applicationAction(user, targetId, action, body) {
   });
 }
 async function stays(user, q) {
+  await syncExpiredStays();
   const db = await repo.read(scopes.stays);
   const own = user.role === "STUDENT" ? student(db, user).id : null;
   return list(
@@ -311,6 +314,10 @@ async function requestStay(user, body) {
     const profile = student(db, user),
       stay = activeStay(db, profile.id);
     if (!stay) fail("Bạn chưa có lượt lưu trú đang hoạt động.");
+    if (stay.actualEndDate)
+      fail(
+        `Lượt lưu trú này đã được duyệt trả phòng vào hết ngày ${stay.actualEndDate}.`,
+      );
     if (!["EXTEND", "RETURN"].includes(body.type))
       fail("Loại yêu cầu không hợp lệ.");
     if (
@@ -412,8 +419,10 @@ async function decideRequest(user, targetId, body) {
     if (body.status === "REJECTED")
       request.rejectionReason = String(required(body.reason, "lý do từ chối"));
     else {
-      if (stay.status !== "ACTIVE") fail("Lượt lưu trú không còn hiệu lực.");
+      if (!isStayActive(stay)) fail("Lượt lưu trú không còn hiệu lực.");
       if (request.type === "EXTEND") {
+        if (stay.actualEndDate)
+          fail("Lượt lưu trú này đã được duyệt trả phòng.");
         stay.plannedEndDate = request.desiredDate;
         if (request.overdueDays > 0 && request.penaltyAmount > 0) {
           stay.extensionStartDate = request.startDateForCycle;
@@ -431,8 +440,15 @@ async function decideRequest(user, targetId, body) {
           });
         }
       } else {
-        stay.status = "ENDED";
-        stay.actualEndDate = request.desiredDate;
+        const todayDate = today();
+        const returnDate = request.desiredDate || stay.plannedEndDate || todayDate;
+        stay.actualEndDate = returnDate;
+        // Chỉ chuyển ENDED ngay khi đã tới hoặc qua ngày trả phòng; nếu còn hạn ở hết chu kỳ thì giữ ACTIVE
+        if (returnDate <= todayDate) {
+          stay.status = "ENDED";
+        } else {
+          stay.status = "ACTIVE";
+        }
         if (request.overdueDays > 0 && request.penaltyAmount > 0) {
           if (!stay.penalties) stay.penalties = [];
           stay.penalties.push({
@@ -453,12 +469,16 @@ async function decideRequest(user, targetId, body) {
     request.handledBy = user.id;
     request.handledAt = now();
     const stu = one(db, "students", request.studentId);
+    const approvedMsg =
+      request.type === "RETURN" && stay.actualEndDate > today()
+        ? `Yêu cầu trả phòng đã được duyệt. Bạn tiếp tục lưu trú đến hết ngày ${stay.actualEndDate}.${request.overdueDays > 0 ? ` Phí phạt ${request.penaltyAmount.toLocaleString("vi-VN")} ₫ sẽ được tính vào hóa đơn.` : ""}`
+        : `Yêu cầu của bạn đã được duyệt.${request.overdueDays > 0 ? ` Phí phạt ${request.penaltyAmount.toLocaleString("vi-VN")} ₫ sẽ được tính vào hóa đơn.` : ""}`;
     notify(
       db,
       stu.userId,
       "Yêu cầu lưu trú đã xử lý",
       body.status === "APPROVED"
-        ? `Yêu cầu của bạn đã được duyệt.${request.overdueDays > 0 ? ` Phí phạt ${request.penaltyAmount.toLocaleString("vi-VN")} ₫ sẽ được tính vào hóa đơn.` : ""}`
+        ? approvedMsg
         : `Yêu cầu bị từ chối: ${request.rejectionReason}`,
       "/requests",
     );

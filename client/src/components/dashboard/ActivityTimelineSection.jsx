@@ -26,16 +26,38 @@ function formatRelativeTime(dateString) {
 // Event type classifier
 function classifyEvent(title = "", body = "") {
   const text = `${title} ${body}`.toLowerCase();
-  if (text.includes("thanh toán") || text.includes("thu tiền") || text.includes("hóa đơn")) {
+  if (
+    text.includes("thanh toán") ||
+    text.includes("thu tiền") ||
+    text.includes("hóa đơn")
+  ) {
     return { type: "payment", icon: CreditCard, colorClass: "payment" };
   }
-  if (text.includes("hồ sơ") || text.includes("duyệt") || text.includes("đăng ký")) {
-    return { type: "application", icon: ClipboardList, colorClass: "application" };
+  if (
+    text.includes("hồ sơ") ||
+    text.includes("duyệt") ||
+    text.includes("đăng ký")
+  ) {
+    return {
+      type: "application",
+      icon: ClipboardList,
+      colorClass: "application",
+    };
   }
-  if (text.includes("phòng") || text.includes("chuyển") || text.includes("giường") || text.includes("lưu trú")) {
+  if (
+    text.includes("phòng") ||
+    text.includes("chuyển") ||
+    text.includes("giường") ||
+    text.includes("lưu trú")
+  ) {
     return { type: "room", icon: BedDouble, colorClass: "room" };
   }
-  if (text.includes("đăng nhập") || text.includes("mật khẩu") || text.includes("khóa") || text.includes("quyền")) {
+  if (
+    text.includes("đăng nhập") ||
+    text.includes("mật khẩu") ||
+    text.includes("khóa") ||
+    text.includes("quyền")
+  ) {
     return { type: "auth", icon: ShieldCheck, colorClass: "auth" };
   }
   return { type: "system", icon: Clock, colorClass: "system" };
@@ -53,20 +75,29 @@ export default function ActivityTimelineSection({
 
   // Filter logs
   const filteredLogs = useMemo(() => {
-    return (logsData || []).filter((log) => {
-      const { type } = classifyEvent(log.title, log.body);
-      const matchCat = categoryFilter === "ALL" || type === categoryFilter;
-      const matchRole = !roleFilter || log.actorRole === roleFilter;
-      return matchCat && matchRole;
-    }).slice(0, 10);
+    return (logsData || [])
+      .filter((log) => {
+        const { type } = classifyEvent(log.title, log.body);
+        const matchCat = categoryFilter === "ALL" || type === categoryFilter;
+        const matchRole = !roleFilter || log.actorRole === roleFilter;
+        return matchCat && matchRole;
+      })
+      .slice(0, 10);
   }, [logsData, categoryFilter, roleFilter]);
 
   return (
-    <div className="section-card" role="region" aria-label="Nhật ký hoạt động hệ thống">
+    <div
+      className="section-card"
+      role="region"
+      aria-label="Nhật ký hoạt động hệ thống"
+    >
       <div className="section-head">
         <div>
           <h2>Nhật ký hoạt động hệ thống</h2>
-          <p>Ghi nhận toàn bộ thao tác nghiệp vụ của mọi vai trò theo thời gian thực</p>
+          <p>
+            Ghi nhận toàn bộ thao tác nghiệp vụ của mọi vai trò theo thời gian
+            thực
+          </p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -90,7 +121,12 @@ export default function ActivityTimelineSection({
               transition: "all 0.15s ease",
             }}
           >
-            <RotateCw size={14} style={{ animation: isLoading ? "spin 1s linear infinite" : "none" }} />
+            <RotateCw
+              size={14}
+              style={{
+                animation: isLoading ? "spin 1s linear infinite" : "none",
+              }}
+            />
           </button>
         </div>
       </div>
@@ -128,56 +164,103 @@ export default function ActivityTimelineSection({
       </div>
 
       {/* Timeline items */}
-      <div className="timeline-container" style={{ maxHeight: "330px", overflowY: "auto", paddingRight: "4px" }}>
+      <div
+        className="timeline-container"
+        style={{ maxHeight: "330px", overflowY: "auto", paddingRight: "4px" }}
+      >
         {filteredLogs.length === 0 ? (
           <div className="dash-empty-state">
-            <div className="dash-empty-icon" style={{ background: "#f1f5f9", color: "#64748b" }}>
+            <div
+              className="dash-empty-icon"
+              style={{ background: "#f1f5f9", color: "#64748b" }}
+            >
               <Clock size={24} />
             </div>
             <strong className="dash-empty-title">Không có hoạt động nào</strong>
-            <p className="dash-empty-desc">Chưa có sự kiện nào tương ứng với bộ lọc được chọn.</p>
+            <p className="dash-empty-desc">
+              Chưa có sự kiện nào tương ứng với bộ lọc được chọn.
+            </p>
           </div>
         ) : (
           filteredLogs.map((log) => {
-            const { icon: EventIcon, colorClass } = classifyEvent(log.title, log.body);
+            const { icon: EventIcon, colorClass } = classifyEvent(
+              log.title,
+              log.body,
+            );
             const exactTime = dateTimeFormatter(log.time || log.createdAt);
             const relTime = formatRelativeTime(log.time || log.createdAt);
 
             return (
               <div key={log.id} className="timeline-item">
-                <div className={`timeline-node-icon ${colorClass}`} aria-hidden="true">
+                <div
+                  className={`timeline-node-icon ${colorClass}`}
+                  aria-hidden="true"
+                >
                   <EventIcon size={16} />
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" }}>
-                    <strong style={{ fontSize: "13px", color: "#0f172a" }}>{log.title}</strong>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: "8px",
+                    }}
+                  >
+                    <strong style={{ fontSize: "13px", color: "#0f172a" }}>
+                      {log.title}
+                    </strong>
                     <span
-                      style={{ fontSize: "11px", color: "#64748b", whiteSpace: "nowrap" }}
+                      style={{
+                        fontSize: "11px",
+                        color: "#64748b",
+                        whiteSpace: "nowrap",
+                      }}
                       title={`Thời gian chính xác: ${exactTime}`}
                     >
                       {relTime}
                     </span>
                   </div>
 
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#475569", lineHeight: 1.4 }}>
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: "12px",
+                      color: "#475569",
+                      lineHeight: 1.4,
+                    }}
+                  >
                     {log.body}
                   </p>
 
-                  <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div
+                    style={{
+                      marginTop: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <span
                       style={{
                         fontSize: "10.5px",
                         fontWeight: 600,
                         padding: "1px 6px",
                         borderRadius: "3px",
-                        background: log.actorRole === "ADMIN" ? "#fef2f2" : "#eff6ff",
-                        color: log.actorRole === "ADMIN" ? "#dc2626" : "#2563eb",
+                        background:
+                          log.actorRole === "ADMIN" ? "#fef2f2" : "#eff6ff",
+                        color:
+                          log.actorRole === "ADMIN" ? "#dc2626" : "#2563eb",
                       }}
                     >
-                      {log.actorRole === "ADMIN" ? "Quản trị viên" : "Nhân viên"}
+                      {log.actorRole === "ADMIN"
+                        ? "Quản trị viên"
+                        : "Nhân viên"}
                     </span>
-                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>{exactTime}</span>
+                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                      {exactTime}
+                    </span>
                   </div>
                 </div>
               </div>

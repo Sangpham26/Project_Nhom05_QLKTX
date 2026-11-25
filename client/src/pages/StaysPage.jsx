@@ -52,11 +52,16 @@ export default function StaysPage() {
             <strong>{date(active[0].startDate)}</strong>
           </div>
           <div>
-            <span>Kết thúc dự kiến</span>
-            <strong>{date(active[0].plannedEndDate)}</strong>
+            <span>{active[0].actualEndDate ? "Trả phòng cuối chu kỳ" : "Kết thúc dự kiến"}</span>
+            <strong>{date(active[0].actualEndDate || active[0].plannedEndDate)}</strong>
           </div>
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center", gap: "4px" }}>
             {badge(active[0].status)}
+            {active[0].actualEndDate && (
+              <small className="muted" style={{ fontSize: "12px" }}>
+                Đã duyệt trả phòng
+              </small>
+            )}
           </div>
         </div>
       )}

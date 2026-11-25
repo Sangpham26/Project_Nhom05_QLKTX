@@ -45,6 +45,8 @@ async function transfer(user, body) {
     const profile = one(db, "students", required(body.studentId, "sinh viên"));
     const stay = activeStay(db, profile.id);
     if (!stay) fail("Sinh viên chưa có lượt lưu trú hoạt động.");
+    if (stay.actualEndDate)
+      fail("Sinh viên đã được duyệt lịch trả phòng, không thể chuyển phòng.");
     const room = one(db, "rooms", required(body.roomId, "phòng mới"));
     if (room.id === stay.roomId) fail("Vui lòng chọn phòng khác.");
 

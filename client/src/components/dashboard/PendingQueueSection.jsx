@@ -1,5 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { ClipboardList, CheckCircle2, Check, X, ArrowRight, UserCheck, RefreshCw, DoorClosed } from "lucide-react";
+import {
+  ClipboardList,
+  CheckCircle2,
+  Check,
+  X,
+  ArrowRight,
+  UserCheck,
+  RefreshCw,
+  DoorClosed,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function PendingQueueSection({
@@ -18,32 +27,42 @@ export default function PendingQueueSection({
   // Break requests down by type
   const transferRequests = useMemo(
     () => pendingRequests.filter((r) => r.type === "TRANSFER"),
-    [pendingRequests]
+    [pendingRequests],
   );
   const extendRequests = useMemo(
     () => pendingRequests.filter((r) => r.type === "EXTEND"),
-    [pendingRequests]
+    [pendingRequests],
   );
   const returnRequests = useMemo(
     () => pendingRequests.filter((r) => r.type === "RETURN"),
-    [pendingRequests]
+    [pendingRequests],
   );
 
   const totalCount = pendingApps.length + pendingRequests.length;
 
   // Filter items based on activeTab
   const visibleItems = useMemo(() => {
-    if (activeTab === "NEW_APP") return pendingApps.map((a) => ({ ...a, _isApp: true }));
-    if (activeTab === "TRANSFER") return transferRequests.map((r) => ({ ...r, _isApp: false }));
-    if (activeTab === "EXTEND") return extendRequests.map((r) => ({ ...r, _isApp: false }));
-    if (activeTab === "RETURN") return returnRequests.map((r) => ({ ...r, _isApp: false }));
+    if (activeTab === "NEW_APP")
+      return pendingApps.map((a) => ({ ...a, _isApp: true }));
+    if (activeTab === "TRANSFER")
+      return transferRequests.map((r) => ({ ...r, _isApp: false }));
+    if (activeTab === "EXTEND")
+      return extendRequests.map((r) => ({ ...r, _isApp: false }));
+    if (activeTab === "RETURN")
+      return returnRequests.map((r) => ({ ...r, _isApp: false }));
 
     // ALL tab: combine all
     return [
       ...pendingApps.map((a) => ({ ...a, _isApp: true })),
       ...pendingRequests.map((r) => ({ ...r, _isApp: false })),
     ].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  }, [activeTab, pendingApps, transferRequests, extendRequests, returnRequests]);
+  }, [
+    activeTab,
+    pendingApps,
+    transferRequests,
+    extendRequests,
+    returnRequests,
+  ]);
 
   const handleConfirmAction = () => {
     if (!confirmModal) return;
@@ -62,13 +81,23 @@ export default function PendingQueueSection({
   };
 
   return (
-    <div className="section-card" role="region" aria-label="Hồ sơ và yêu cầu chờ xử lý">
+    <div
+      className="section-card"
+      role="region"
+      aria-label="Hồ sơ và yêu cầu chờ xử lý"
+    >
       <div className="section-head">
         <div>
           <h2>Hồ sơ & Yêu cầu chờ xử lý</h2>
-          <p>Các đề xuất lưu trú, chuyển phòng và đăng ký mới nhất từ sinh viên</p>
+          <p>
+            Các đề xuất lưu trú, chuyển phòng và đăng ký mới nhất từ sinh viên
+          </p>
         </div>
-        <Link to="/applications" className="text-link" style={{ fontSize: "13px", fontWeight: 600 }}>
+        <Link
+          to="/applications"
+          className="text-link"
+          style={{ fontSize: "13px", fontWeight: 600 }}
+        >
           Xem tất cả hồ sơ <ArrowRight size={15} />
         </Link>
       </div>
@@ -91,7 +120,8 @@ export default function PendingQueueSection({
           role="tab"
           aria-selected={activeTab === "NEW_APP"}
         >
-          Đăng ký mới <span className="pending-tab-count">{pendingApps.length}</span>
+          Đăng ký mới{" "}
+          <span className="pending-tab-count">{pendingApps.length}</span>
         </button>
         <button
           type="button"
@@ -100,7 +130,8 @@ export default function PendingQueueSection({
           role="tab"
           aria-selected={activeTab === "TRANSFER"}
         >
-          Chuyển phòng <span className="pending-tab-count">{transferRequests.length}</span>
+          Chuyển phòng{" "}
+          <span className="pending-tab-count">{transferRequests.length}</span>
         </button>
         <button
           type="button"
@@ -109,7 +140,8 @@ export default function PendingQueueSection({
           role="tab"
           aria-selected={activeTab === "EXTEND"}
         >
-          Gia hạn <span className="pending-tab-count">{extendRequests.length}</span>
+          Gia hạn{" "}
+          <span className="pending-tab-count">{extendRequests.length}</span>
         </button>
         <button
           type="button"
@@ -118,7 +150,8 @@ export default function PendingQueueSection({
           role="tab"
           aria-selected={activeTab === "RETURN"}
         >
-          Trả phòng <span className="pending-tab-count">{returnRequests.length}</span>
+          Trả phòng{" "}
+          <span className="pending-tab-count">{returnRequests.length}</span>
         </button>
       </div>
 
@@ -128,13 +161,18 @@ export default function PendingQueueSection({
           <div className="dash-empty-icon">
             <CheckCircle2 size={28} />
           </div>
-          <strong className="dash-empty-title">Không có hồ sơ nào cần xử lý</strong>
+          <strong className="dash-empty-title">
+            Không có hồ sơ nào cần xử lý
+          </strong>
           <p className="dash-empty-desc">
-            Tuyệt vời! Tất cả đơn đăng ký và đề xuất lưu trú của sinh viên đã được xử lý xong.
+            Tuyệt vời! Tất cả đơn đăng ký và đề xuất lưu trú của sinh viên đã
+            được xử lý xong.
           </p>
         </div>
       ) : (
-        <div style={{ maxHeight: "330px", overflowY: "auto", paddingRight: "4px" }}>
+        <div
+          style={{ maxHeight: "330px", overflowY: "auto", paddingRight: "4px" }}
+        >
           {visibleItems.map((item) => {
             const isApp = item._isApp;
             const title = isApp
@@ -143,8 +181,8 @@ export default function PendingQueueSection({
                   item.type === "TRANSFER"
                     ? "chuyển phòng"
                     : item.type === "EXTEND"
-                    ? "gia hạn lưu trú"
-                    : "trả phòng"
+                      ? "gia hạn lưu trú"
+                      : "trả phòng"
                 } · ${item.student?.fullName || "Sinh viên"}`;
 
             const detail = isApp
@@ -162,15 +200,36 @@ export default function PendingQueueSection({
                 style={{ cursor: "pointer" }}
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: "13.5px", color: "#0f172a" }}>{title}</div>
-                  <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>{detail}</div>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "13.5px",
+                      color: "#0f172a",
+                    }}
+                  >
+                    {title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#64748b",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {detail}
+                  </div>
                 </div>
 
-                <div className="pending-quick-actions" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="pending-quick-actions"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     type="button"
                     className="pending-action-btn approve"
-                    onClick={() => setConfirmModal({ action: "APPROVE", item, isApp })}
+                    onClick={() =>
+                      setConfirmModal({ action: "APPROVE", item, isApp })
+                    }
                     title="Duyệt yêu cầu này ngay"
                   >
                     <Check size={13} />
@@ -179,7 +238,9 @@ export default function PendingQueueSection({
                   <button
                     type="button"
                     className="pending-action-btn reject"
-                    onClick={() => setConfirmModal({ action: "REJECT", item, isApp })}
+                    onClick={() =>
+                      setConfirmModal({ action: "REJECT", item, isApp })
+                    }
                     title="Từ chối yêu cầu này"
                   >
                     <X size={13} />
@@ -194,7 +255,10 @@ export default function PendingQueueSection({
 
       {/* Confirmation Modal */}
       {confirmModal && (
-        <div className="modal-backdrop" onMouseDown={() => setConfirmModal(null)}>
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setConfirmModal(null)}
+        >
           <div
             className="modal"
             onMouseDown={(e) => e.stopPropagation()}
@@ -204,7 +268,11 @@ export default function PendingQueueSection({
             <div className="modal-head">
               <div>
                 <span className="eyebrow">XÁC NHẬN THAO TÁC</span>
-                <h2>{confirmModal.action === "APPROVE" ? "Xác nhận duyệt" : "Xác nhận từ chối"}</h2>
+                <h2>
+                  {confirmModal.action === "APPROVE"
+                    ? "Xác nhận duyệt"
+                    : "Xác nhận từ chối"}
+                </h2>
               </div>
               <button
                 type="button"
@@ -217,11 +285,23 @@ export default function PendingQueueSection({
             </div>
             <p className="confirm-detail">
               Bạn có chắc chắn muốn{" "}
-              <strong>{confirmModal.action === "APPROVE" ? "DUYỆT" : "TỪ CHỐI"}</strong>{" "}
+              <strong>
+                {confirmModal.action === "APPROVE" ? "DUYỆT" : "TỪ CHỐI"}
+              </strong>{" "}
               {confirmModal.isApp ? "hồ sơ đăng ký của" : "yêu cầu của"}{" "}
-              <strong>{confirmModal.item.student?.fullName || "Sinh viên"}</strong>?
+              <strong>
+                {confirmModal.item.student?.fullName || "Sinh viên"}
+              </strong>
+              ?
             </p>
-            <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <div
+              className="modal-actions"
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
               <button
                 type="button"
                 className="button button-ghost"
@@ -234,7 +314,9 @@ export default function PendingQueueSection({
                 className={`button ${confirmModal.action === "APPROVE" ? "button-primary" : "button-danger"}`}
                 onClick={handleConfirmAction}
               >
-                {confirmModal.action === "APPROVE" ? "Đồng ý duyệt" : "Xác nhận từ chối"}
+                {confirmModal.action === "APPROVE"
+                  ? "Đồng ý duyệt"
+                  : "Xác nhận từ chối"}
               </button>
             </div>
           </div>

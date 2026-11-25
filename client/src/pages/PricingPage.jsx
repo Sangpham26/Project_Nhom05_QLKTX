@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Plus, Zap, Wallet } from "lucide-react";
 import { api, date, money } from "../services/api";
+import { calcOverduePenaltyRate } from "../utils/formatters";
 import { useNotice, useLoad } from "../hooks/useLoad";
 import {
   PageTitle,
@@ -101,7 +102,7 @@ export default function PricingPage() {
       </div>
       <Section
         title="Phí theo loại phòng"
-        subtitle="Phí hàng tháng trên mỗi sinh viên"
+        subtitle="Phí hàng tháng trên mỗi sinh viên (Phí phạt quá hạn = 1,5 lần giá ngày, tối thiểu 25.000 ₫/ngày)"
       >
         {cat.data?.roomTypes?.length ? (
           <Table
@@ -113,6 +114,12 @@ export default function PricingPage() {
                 key: "fee",
                 label: "Phí hiện hành",
                 render: (x) => money(latest?.roomFees?.[x.id] ?? x.fee),
+              },
+              {
+                key: "penaltyRate",
+                label: "Phạt quá hạn / ngày",
+                render: (x) =>
+                  money(calcOverduePenaltyRate(latest?.roomFees?.[x.id] ?? x.fee)),
               },
             ]}
           />

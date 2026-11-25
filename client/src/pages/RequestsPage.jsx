@@ -11,7 +11,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useNotice, useLoad } from "../hooks/useLoad";
 import { api, date, money, labels } from "../services/api";
-import { badge, endAfterMonths } from "../utils/formatters";
+import { badge, endAfterMonths, calcOverduePenaltyRate } from "../utils/formatters";
 import {
   Toast,
   Loading,
@@ -40,22 +40,27 @@ function StayRequestModal({
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const plannedEnd = currentStay?.plannedEndDate || todayStr;
 
-  // Tính số ngày chênh lệch & phạt trễ hạn
-  const { diffDays, isOverdue, overdueDays, penaltyAmount } = useMemo(() => {
-    const dPlanned = new Date(`${plannedEnd}T00:00:00Z`);
-    const dToday = new Date(`${todayStr}T00:00:00Z`);
-    const diff = Math.round((dPlanned - dToday) / 86400000);
-    const overdue = diff < 0;
-    const days = overdue ? Math.abs(diff) : 0;
-    const rate = 25000;
-    return {
-      diffDays: diff,
-      isOverdue: overdue,
-      overdueDays: days,
-      penaltyRate: rate,
-      penaltyAmount: days * rate,
-    };
-  }, [plannedEnd, todayStr]);
+  // Tính số ngày chênh lệch & phạt trễ hạn theo đơn giá loại phòng
+  const { diffDays, isOverdue, overdueDays, penaltyRate, penaltyAmount } =
+    useMemo(() => {
+      const dPlanned = new Date(`${plannedEnd}T00:00:00Z`);
+      const dToday = new Date(`${todayStr}T00:00:00Z`);
+      const diff = Math.round((dPlanned - dToday) / 86400000);
+      const overdue = diff < 0;
+      const days = overdue ? Math.abs(diff) : 0;
+      const rate =
+        currentStay?.penaltyRate ||
+        calcOverduePenaltyRate(
+          currentStay?.monthlyRoomFee || currentStay?.room?.roomType?.fee,
+        );
+      return {
+        diffDays: diff,
+        isOverdue: overdue,
+        overdueDays: days,
+        penaltyRate: rate,
+        penaltyAmount: days * rate,
+      };
+    }, [plannedEnd, todayStr, currentStay]);
 
   const addDays = (dateStr, days) => {
     const d = new Date(`${dateStr}T00:00:00Z`);
@@ -162,7 +167,7 @@ function StayRequestModal({
               Chu kỳ cũ đã kết thúc vào ngày <strong>{date(plannedEnd)}</strong>
               . Hệ thống đang tính phí phạt trễ hạn:{" "}
               <strong style={{ color: "#dc2626" }}>
-                {overdueDays} ngày × 25.000 ₫ = {money(penaltyAmount)}
+                {overdueDays} ngày × {money(penaltyRate)} = {money(penaltyAmount)}
               </strong>
               .
               {type === "EXTEND"
@@ -201,7 +206,7 @@ function StayRequestModal({
             <div>
               Chu kỳ lưu trú sẽ kết thúc vào ngày{" "}
               <strong>{date(plannedEnd)}</strong>. Vui lòng gửi yêu cầu sớm để
-              không phát sinh phí phạt trễ hạn (25.000 ₫/ngày).
+              không phát sinh phí phạt trễ hạn ({money(penaltyRate)}/ngày).
             </div>
           </div>
         ) : (
@@ -358,7 +363,7 @@ function StayRequestModal({
                 Phí phạt trễ hạn tính đến nay:
               </span>
               <strong className="stay-penalty-highlight">
-                {overdueDays} ngày × 25.000 ₫ = {money(penaltyAmount)}
+                {overdueDays} ngày × {money(penaltyRate)} = {money(penaltyAmount)}
               </strong>
             </div>
           )}
@@ -738,7 +743,8 @@ function RequestsPage() {
               <div style={{ color: "#444444" }}>
                 Phí phạt trễ hạn được tính:{" "}
                 <strong style={{ color: "#dc2626" }}>
-                  {decision.overdueDays} ngày × 25.000 ₫ ={" "}
+                  {decision.overdueDays} ngày ×{" "}
+                  {money(decision.penaltyRate || 25000)} ={" "}
                   {money(decision.penaltyAmount)}
                 </strong>
                 .

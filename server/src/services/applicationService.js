@@ -36,6 +36,8 @@ const {
   logEvent,
   publicUser,
   money,
+  currentRoomFee,
+  calcOverduePenaltyRate,
   paid,
   invoiceView,
   list,
@@ -283,11 +285,17 @@ async function stays(user, q) {
   return list(
     db.stays
       .filter((x) => !own || x.studentId === own)
-      .map((x) => ({
-        ...x,
-        student: db.students.find((s) => s.id === x.studentId),
-        room: roomView(db, one(db, "rooms", x.roomId)),
-      }))
+      .map((x) => {
+        const room = roomView(db, one(db, "rooms", x.roomId));
+        const monthlyRoomFee = currentRoomFee(db, room.roomTypeId);
+        return {
+          ...x,
+          student: db.students.find((s) => s.id === x.studentId),
+          room,
+          monthlyRoomFee,
+          penaltyRate: calcOverduePenaltyRate(monthlyRoomFee),
+        };
+      })
       .sort((a, b) => b.startDate.localeCompare(a.startDate)),
     q,
   );
@@ -336,7 +344,9 @@ async function requestStay(user, body) {
     const diffDays = Math.round((dPlanned - dToday) / 86400000);
     const isOverdue = diffDays < 0;
     const overdueDays = isOverdue ? Math.abs(diffDays) : 0;
-    const penaltyRate = 25000;
+    const stayRoom = one(db, "rooms", stay.roomId);
+    const monthlyFee = currentRoomFee(db, stayRoom.roomTypeId, todayDate);
+    const penaltyRate = calcOverduePenaltyRate(monthlyFee);
     const penaltyAmount = overdueDays * penaltyRate;
 
     let desiredDate;
@@ -420,19 +430,26 @@ async function decideRequest(user, targetId, body) {
       request.rejectionReason = String(required(body.reason, "lý do từ chối"));
     else {
       if (!isStayActive(stay)) fail("Lượt lưu trú không còn hiệu lực.");
+      const stayRoom = one(db, "rooms", stay.roomId);
+      const fallbackRate = calcOverduePenaltyRate(
+        currentRoomFee(db, stayRoom.roomTypeId),
+      );
+      const effectiveRate = request.penaltyRate || fallbackRate;
+      const effectiveAmount =
+        request.penaltyAmount || request.overdueDays * effectiveRate;
       if (request.type === "EXTEND") {
         if (stay.actualEndDate)
           fail("Lượt lưu trú này đã được duyệt trả phòng.");
         stay.plannedEndDate = request.desiredDate;
-        if (request.overdueDays > 0 && request.penaltyAmount > 0) {
+        if (request.overdueDays > 0 && effectiveAmount > 0) {
           stay.extensionStartDate = request.startDateForCycle;
           if (!stay.penalties) stay.penalties = [];
           stay.penalties.push({
             id: request.id,
             type: "EXTEND",
             days: request.overdueDays,
-            rate: request.penaltyRate || 25000,
-            amount: request.penaltyAmount,
+            rate: effectiveRate,
+            amount: effectiveAmount,
             date: today(),
             periodMonth: today().slice(0, 7),
             reason: `Phạt gia hạn trễ ${request.overdueDays} ngày`,
@@ -449,14 +466,14 @@ async function decideRequest(user, targetId, body) {
         } else {
           stay.status = "ACTIVE";
         }
-        if (request.overdueDays > 0 && request.penaltyAmount > 0) {
+        if (request.overdueDays > 0 && effectiveAmount > 0) {
           if (!stay.penalties) stay.penalties = [];
           stay.penalties.push({
             id: request.id,
             type: "RETURN",
             days: request.overdueDays,
-            rate: request.penaltyRate || 25000,
-            amount: request.penaltyAmount,
+            rate: effectiveRate,
+            amount: effectiveAmount,
             date: today(),
             periodMonth: today().slice(0, 7),
             reason: `Phạt trả phòng trễ ${request.overdueDays} ngày`,

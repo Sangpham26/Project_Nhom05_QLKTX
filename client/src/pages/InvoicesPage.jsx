@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { api, date, money, labels } from "../services/api";
-import { badge, formatStayPeriod } from "../utils/formatters";
+import { badge, formatStayPeriod, calcOverduePenaltyRate } from "../utils/formatters";
 import { useAuth } from "../context/AuthContext";
 import { useLoad, useNotice } from "../hooks/useLoad";
 import {
@@ -289,19 +289,23 @@ function InvoiceDetail() {
               </span>
               <strong>{money(x.waterFee)}</strong>
             </div>
-            {(x.penaltyFee > 0 || s?.penaltyFee > 0) && (
-              <div style={{ color: "#dc2626" }}>
-                <span style={{ fontWeight: 600 }}>
-                  Phí phạt trễ hạn lưu trú (
-                  {s?.penaltyDays ||
-                    Math.round((x.penaltyFee || s?.penaltyFee) / 25000)}{" "}
-                  ngày × 25.000 ₫)
-                </span>
-                <strong style={{ color: "#dc2626" }}>
-                  {money(x.penaltyFee || s?.penaltyFee)}
-                </strong>
-              </div>
-            )}
+            {(x.penaltyFee > 0 || s?.penaltyFee > 0) && (() => {
+              const penaltyTotal = x.penaltyFee || s?.penaltyFee;
+              const fallbackRate = calcOverduePenaltyRate(s?.monthlyRoomFee);
+              const penaltyDays =
+                s?.penaltyDays || Math.max(1, Math.round(penaltyTotal / fallbackRate));
+              const unitRate = Math.round(penaltyTotal / penaltyDays);
+              return (
+                <div style={{ color: "#dc2626" }}>
+                  <span style={{ fontWeight: 600 }}>
+                    Phí phạt trễ hạn lưu trú ({penaltyDays} ngày × {money(unitRate)})
+                  </span>
+                  <strong style={{ color: "#dc2626" }}>
+                    {money(penaltyTotal)}
+                  </strong>
+                </div>
+              );
+            })()}
             <div className="total">
               <span>Tổng cộng</span>
               <strong>{money(x.total)}</strong>

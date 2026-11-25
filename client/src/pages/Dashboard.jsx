@@ -17,7 +17,7 @@ import * as XLSX from "xlsx";
 import { useAuth } from "../context/AuthContext";
 import { useNotice, useLoad } from "../hooks/useLoad";
 import { api, date, dateTime, money, labels } from "../services/api";
-import { badge } from "../utils/formatters";
+import { badge, calcOverduePenaltyRate } from "../utils/formatters";
 import { StayRequestModal } from "./RequestsPage";
 import PendingQueueSection from "../components/dashboard/PendingQueueSection.jsx";
 import ActivityTimelineSection from "../components/dashboard/ActivityTimelineSection.jsx";
@@ -521,6 +521,11 @@ function Dashboard() {
   }, [plannedEnd, todayStr]);
   const isStayOverdue = stayDiffDays !== null && stayDiffDays < 0;
   const stayOverdueDays = isStayOverdue ? Math.abs(stayDiffDays) : 0;
+  const stayPenaltyRate =
+    active?.penaltyRate ||
+    calcOverduePenaltyRate(
+      active?.monthlyRoomFee || active?.room?.roomType?.fee,
+    );
 
   return (
     <>
@@ -576,9 +581,9 @@ function Dashboard() {
                       Chu kỳ lưu trú phòng <strong>{active.room?.code}</strong>{" "}
                       đã hết hạn từ ngày <strong>{date(plannedEnd)}</strong>. Hệ
                       thống đang tính phí phạt trễ hạn{" "}
-                      <strong>25.000 ₫/ngày</strong> (Hiện tại:{" "}
+                      <strong>{money(stayPenaltyRate)}/ngày</strong> (Hiện tại:{" "}
                       <strong style={{ color: "#dc2626" }}>
-                        {money(stayOverdueDays * 25000)}
+                        {money(stayOverdueDays * stayPenaltyRate)}
                       </strong>
                       ). Vui lòng thực hiện <strong>Gia hạn ngay</strong> hoặc{" "}
                       <strong>Trả phòng</strong> để tránh phát sinh thêm phí
@@ -619,7 +624,7 @@ function Dashboard() {
                       Chu kỳ lưu trú phòng <strong>{active.room?.code}</strong>{" "}
                       sẽ kết thúc vào ngày <strong>{date(plannedEnd)}</strong>.
                       Vui lòng gửi yêu cầu gia hạn hoặc trả phòng trước ngày này
-                      để không bị phạt trễ hạn (25.000 ₫/ngày).
+                      để không bị phạt trễ hạn ({money(stayPenaltyRate)}/ngày).
                     </p>
                   </div>
                 </div>
@@ -746,7 +751,7 @@ function Dashboard() {
                           (isStayOverdue ? (
                             <span className="stay-badge-overdue-red">
                               Quá hạn {stayOverdueDays} ngày (Phạt{" "}
-                              {money(stayOverdueDays * 25000)})
+                              {money(stayOverdueDays * stayPenaltyRate)})
                             </span>
                           ) : stayDiffDays <= 3 ? (
                             <span

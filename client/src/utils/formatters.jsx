@@ -68,3 +68,12 @@ export function formatStayPeriod(snap) {
   }
   return "";
 }
+
+/**
+ * Tính mức phạt quá hạn mỗi ngày theo giá loại phòng (1.5x giá ngày, tối thiểu 25.000 ₫/ngày)
+ */
+export function calcOverduePenaltyRate(monthlyFee) {
+  const fee = Number(monthlyFee) || 0;
+  if (fee <= 0) return 25000;
+  return Math.max(25000, Math.round(((fee / 30) * 1.5) / 1000) * 1000);
+}

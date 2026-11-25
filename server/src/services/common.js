@@ -76,12 +76,14 @@ const scopes = {
     "staff",
     "activityLogs",
   ],
-  stays: ["stays", "students", "rooms", "buildings", "roomTypes"],
+  stays: ["stays", "students", "rooms", "buildings", "roomTypes", "pricing"],
   requests: [
     "requests",
     "students",
     "stays",
     "rooms",
+    "roomTypes",
+    "pricing",
     "notifications",
     "users",
     "staff",
@@ -468,6 +470,21 @@ const publicUser = (u) => ({
   active: u.active,
 });
 const money = (n) => Math.round(Number(n));
+const currentRoomFee = (db, roomTypeId, refDate = today()) => {
+  const type = (db.roomTypes || []).find((x) => x.id === roomTypeId);
+  const latestPricing =
+    (db.pricing || [])
+      .filter((x) => x.effectiveFrom <= refDate)
+      .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] ||
+    (db.pricing || []).at(-1);
+  return money(latestPricing?.roomFees?.[roomTypeId] ?? type?.fee ?? 0);
+};
+const calcOverduePenaltyRate = (monthlyFee) => {
+  const fee = Number(monthlyFee) || 0;
+  if (fee <= 0) return 25000;
+  // Mức phạt quá hạn = 1.5 lần tiền phòng/ngày (chia 30 ngày, làm tròn nghìn đồng), tối thiểu 25.000 đ/ngày
+  return Math.max(25000, Math.round(((fee / 30) * 1.5) / 1000) * 1000);
+};
 const paid = (db, invoiceId) =>
   db.payments
     .filter((x) => x.invoiceId === invoiceId)
@@ -583,6 +600,8 @@ module.exports = {
   logEvent,
   publicUser,
   money,
+  currentRoomFee,
+  calcOverduePenaltyRate,
   paid,
   invoiceView,
   list,

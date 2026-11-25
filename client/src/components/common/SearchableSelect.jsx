@@ -108,7 +108,7 @@ export default function SearchableSelect({
           background: disabled ? "#f5f8f8" : "#ffffff",
           border: open ? "1px solid #222222" : "1px solid #dfe8ea",
           boxShadow: open ? "0 0 0 3px rgba(34, 34, 34, 0.12)" : "none",
-          borderRadius: "8px",
+          borderRadius: "3px",
           cursor: disabled ? "not-allowed" : "pointer",
           transition: "border-color 0.15s ease, box-shadow 0.15s ease",
         }}

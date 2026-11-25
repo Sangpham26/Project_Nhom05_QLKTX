@@ -10,11 +10,11 @@
   --dl-gutter: clamp(20px, 4vw, 64px);
   --dl-content-width: 1320px;
   --dl-section-space: clamp(80px, 9vw, 144px);
-  --dl-heading: Manrope, "DM Sans", Arial, sans-serif;
-  --dl-serif: "Times New Roman", Georgia, serif;
+  --dl-heading: "Be Vietnam Pro", Arial, sans-serif;
+  --dl-serif: "Be Vietnam Pro", Georgia, serif;
   min-height: 100vh;
   background: var(--dl-paper);
-  font-family: "DM Sans", Inter, system-ui, sans-serif;
+  font-family: "Be Vietnam Pro", Inter, system-ui, sans-serif;
 }
 .dorm-landing :is(main, .dl-outro) {
   color: var(--dl-ink);

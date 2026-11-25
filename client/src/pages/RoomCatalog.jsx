@@ -498,7 +498,7 @@ function RoomCatalog() {
                 style={{
                   background: "#fff1f2",
                   border: "1px solid #fecdd3",
-                  borderRadius: "8px",
+                  borderRadius: "3px",
                   padding: "12px 14px",
                   color: "#9f1239",
                   fontSize: "13px",

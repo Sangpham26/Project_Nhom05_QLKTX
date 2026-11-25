@@ -136,7 +136,7 @@ function StayRequestModal({
           <div
             style={{
               padding: "12px 14px",
-              borderRadius: "10px",
+              borderRadius: "3px",
               background: "#ffffff",
               border: "1.5px solid #222222",
               color: "#222222",
@@ -174,7 +174,7 @@ function StayRequestModal({
           <div
             style={{
               padding: "12px 14px",
-              borderRadius: "10px",
+              borderRadius: "3px",
               background: "#fef2f2",
               border: "1.5px solid #f87171",
               color: "#991b1b",
@@ -208,7 +208,7 @@ function StayRequestModal({
           <div
             style={{
               padding: "10px 14px",
-              borderRadius: "10px",
+              borderRadius: "3px",
               background: "#f0fdf4",
               border: "1px solid #86efac",
               color: "#166534",
@@ -350,7 +350,7 @@ function StayRequestModal({
                 background: "#fef2f2",
                 margin: "8px -16px -14px -16px",
                 padding: "10px 16px",
-                borderRadius: "0 0 11px 11px",
+                borderRadius: "0 0 3px 3px",
                 borderTop: "1px dashed #fca5a5",
               }}
             >
@@ -390,7 +390,7 @@ function StayRequestModal({
             }
             style={{
               width: "100%",
-              borderRadius: "8px",
+              borderRadius: "3px",
               padding: "10px 12px",
               border: "1.5px solid #cbd5e1",
               resize: "vertical",
@@ -580,7 +580,7 @@ function RequestsPage() {
                           backgroundColor: "#fef2f2",
                           color: "#dc2626",
                           border: "1.5px solid #f87171",
-                          borderRadius: "9999px",
+                          borderRadius: "3px",
                           padding: "2px 10px",
                           fontSize: "12px",
                           fontWeight: 700,
@@ -595,7 +595,7 @@ function RequestsPage() {
                           backgroundColor: "#f0fdf4",
                           color: "#166534",
                           border: "1px solid #86efac",
-                          borderRadius: "9999px",
+                          borderRadius: "3px",
                           padding: "2px 8px",
                           fontSize: "12px",
                           fontWeight: 600,
@@ -692,7 +692,7 @@ function RequestsPage() {
               padding: "12px 14px",
               backgroundColor: "#f8fafc",
               border: "1px solid #e2e8f0",
-              borderRadius: "10px",
+              borderRadius: "3px",
               fontSize: "13.5px",
             }}
           >
@@ -719,7 +719,7 @@ function RequestsPage() {
                 padding: "12px 14px",
                 backgroundColor: "#ffffff",
                 border: "1.5px solid #222222",
-                borderRadius: "10px",
+                borderRadius: "3px",
                 color: "#222222",
                 fontSize: "13px",
                 lineHeight: "1.5",

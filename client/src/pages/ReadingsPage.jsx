@@ -218,7 +218,7 @@ function ReadingsCombinedModal({
               padding: "10px 14px",
               background: "#fee2e2",
               border: "1px solid #fca5a5",
-              borderRadius: "8px",
+              borderRadius: "3px",
               color: "#b91c1c",
               fontSize: "13px",
               fontWeight: 500,
@@ -295,7 +295,7 @@ function ReadingsCombinedModal({
               style={{
                 border: "1.5px solid #fef08a",
                 background: "#fefce8",
-                borderRadius: "12px",
+                borderRadius: "3px",
                 padding: "14px 16px",
               }}
             >
@@ -314,7 +314,7 @@ function ReadingsCombinedModal({
                     style={{
                       width: "32px",
                       height: "32px",
-                      borderRadius: "8px",
+                      borderRadius: "3px",
                       background: "#fef9c3",
                       display: "flex",
                       alignItems: "center",
@@ -343,7 +343,7 @@ function ReadingsCombinedModal({
                   <div
                     style={{
                       padding: "4px 10px",
-                      borderRadius: "6px",
+                      borderRadius: "3px",
                       background: electricUsage >= 0 ? "#fef08a" : "#fee2e2",
                       color: electricUsage >= 0 ? "#713f12" : "#991b1b",
                       fontSize: "12.5px",
@@ -385,7 +385,7 @@ function ReadingsCombinedModal({
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      borderRadius: "8px",
+                      borderRadius: "3px",
                       border: "1px solid #fde047",
                       background: "#ffffff",
                       fontSize: "13.5px",
@@ -424,7 +424,7 @@ function ReadingsCombinedModal({
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      borderRadius: "8px",
+                      borderRadius: "3px",
                       border: "1px solid #fde047",
                       background: "#ffffff",
                       fontSize: "13.5px",
@@ -441,7 +441,7 @@ function ReadingsCombinedModal({
               style={{
                 border: "1.5px solid #bae6fd",
                 background: "#f0f9ff",
-                borderRadius: "12px",
+                borderRadius: "3px",
                 padding: "14px 16px",
               }}
             >
@@ -460,7 +460,7 @@ function ReadingsCombinedModal({
                     style={{
                       width: "32px",
                       height: "32px",
-                      borderRadius: "8px",
+                      borderRadius: "3px",
                       background: "#e0f2fe",
                       display: "flex",
                       alignItems: "center",
@@ -489,7 +489,7 @@ function ReadingsCombinedModal({
                   <div
                     style={{
                       padding: "4px 10px",
-                      borderRadius: "6px",
+                      borderRadius: "3px",
                       background: waterUsage >= 0 ? "#bae6fd" : "#fee2e2",
                       color: waterUsage >= 0 ? "#0c4a6e" : "#991b1b",
                       fontSize: "12.5px",
@@ -531,7 +531,7 @@ function ReadingsCombinedModal({
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      borderRadius: "8px",
+                      borderRadius: "3px",
                       border: "1px solid #7dd3fc",
                       background: "#ffffff",
                       fontSize: "13.5px",
@@ -570,7 +570,7 @@ function ReadingsCombinedModal({
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      borderRadius: "8px",
+                      borderRadius: "3px",
                       border: "1px solid #7dd3fc",
                       background: "#ffffff",
                       fontSize: "13.5px",
@@ -877,7 +877,7 @@ function ReadingsPage() {
                         alignItems: "center",
                         gap: "6px",
                         padding: "6px 12px",
-                        borderRadius: "8px",
+                        borderRadius: "3px",
                         fontSize: "12.5px",
                         fontWeight: 600,
                       }}

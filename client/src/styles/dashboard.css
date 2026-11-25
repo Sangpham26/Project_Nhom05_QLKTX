@@ -37,7 +37,7 @@
 .pending-tab-btn {
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 3px;
   padding: 6px 12px;
   font-size: 13px;
   font-weight: 600;
@@ -63,7 +63,7 @@
 .pending-tab-count {
   background: rgba(0, 0, 0, 0.06);
   padding: 1px 6px;
-  border-radius: 9999px;
+  border-radius: 3px;
   font-size: 11px;
 }
 
@@ -80,7 +80,7 @@
   padding: 12px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 3px;
   margin-bottom: 10px;
   transition: all 0.15s ease;
 }
@@ -98,7 +98,7 @@
 }
 
 .pending-action-btn {
-  border-radius: 7px;
+  border-radius: 3px;
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -147,7 +147,7 @@
 .dash-empty-icon {
   width: 52px;
   height: 52px;
-  border-radius: 16px;
+  border-radius: 3px;
   background: #ecfdf5;
   color: #16a34a;
   display: flex;
@@ -186,7 +186,7 @@
 .trans-filter-pill {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: 3px;
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -209,7 +209,7 @@
 .dash-filter-select {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 3px;
   height: 34px;
   padding: 0 10px;
   font-size: 12.5px;
@@ -235,7 +235,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 11px 14px;
-  border-radius: 11px;
+  border-radius: 3px;
   border: 1px solid var(--border);
   background: var(--surface);
   transition: all 0.15s ease;
@@ -249,7 +249,7 @@
 .timeline-node-icon {
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;

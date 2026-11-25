@@ -137,17 +137,25 @@ function BillingPage() {
               tone="green"
             />
           </div>
-          {preview.missing.length > 0 && (
-            <div className="callout warning">
-              <strong>Thiếu chỉ số điện nước</strong>
-              <p>
-                {preview.missing
-                  .map((x) => `${x.roomCode}: ${x.types.join(", ")}`)
-                  .join(" · ")}
-              </p>
-              <span>Nhập đủ chỉ số trước khi phát hành hóa đơn.</span>
-            </div>
-          )}
+          {preview.missing.length > 0 && (() => {
+            const missingElectric = preview.missing
+              .filter((x) => x.types.includes("Điện"))
+              .map((x) => x.roomCode);
+            const missingWater = preview.missing
+              .filter((x) => x.types.includes("Nước"))
+              .map((x) => x.roomCode);
+            return (
+              <div className="callout warning">
+                <strong>Thiếu chỉ số điện nước</strong>
+                {missingElectric.length > 0 && (
+                  <p>Điện: {missingElectric.join(", ")}</p>
+                )}
+                {missingWater.length > 0 && (
+                  <p>Nước: {missingWater.join(", ")}</p>
+                )}
+              </div>
+            );
+          })()}
           <Section
             title="Chi tiết xem trước"
             subtitle="Các hóa đơn chưa phát hành trong kỳ"

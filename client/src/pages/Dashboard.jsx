@@ -174,7 +174,7 @@ function ExportLogsModal({ onClose }) {
               padding: "10px 14px",
               background: "#fee2e2",
               border: "1px solid #fca5a5",
-              borderRadius: "8px",
+              borderRadius: "3px",
               color: "#b91c1c",
               fontSize: "13px",
             }}
@@ -214,7 +214,7 @@ function ExportLogsModal({ onClose }) {
                 onClick={() => setMode(t.id)}
                 style={{
                   padding: "9px 12px",
-                  borderRadius: "8px",
+                  borderRadius: "3px",
                   border:
                     mode === t.id ? "1.5px solid #ac482d" : "1px solid #d5d2c6",
                   background: mode === t.id ? "#fbf6f3" : "#ffffff",
@@ -253,7 +253,7 @@ function ExportLogsModal({ onClose }) {
                 minHeight: "40px",
                 padding: "8px 12px",
                 border: "1px solid #cbd5e1",
-                borderRadius: "8px",
+                borderRadius: "3px",
                 fontSize: "14px",
                 color: "#1e293b",
                 background: "#ffffff",
@@ -284,7 +284,7 @@ function ExportLogsModal({ onClose }) {
                 minHeight: "40px",
                 padding: "8px 12px",
                 border: "1px solid #cbd5e1",
-                borderRadius: "8px",
+                borderRadius: "3px",
                 fontSize: "14px",
                 color: "#1e293b",
                 background: "#ffffff",
@@ -298,7 +298,7 @@ function ExportLogsModal({ onClose }) {
             style={{
               padding: "10px 14px",
               background: "#f8fafc",
-              borderRadius: "8px",
+              borderRadius: "3px",
               border: "1px solid #e2e8f0",
               fontSize: "13px",
               color: "#475569",
@@ -314,7 +314,7 @@ function ExportLogsModal({ onClose }) {
             style={{
               padding: "10px 14px",
               background: "#f8fafc",
-              borderRadius: "8px",
+              borderRadius: "3px",
               border: "1px solid #e2e8f0",
               fontSize: "13px",
               color: "#475569",
@@ -333,7 +333,7 @@ function ExportLogsModal({ onClose }) {
             padding: "12px 14px",
             background: "#f0fdf4",
             border: "1px solid #bbf7d0",
-            borderRadius: "8px",
+            borderRadius: "3px",
             fontSize: "13.5px",
           }}
         >
@@ -722,7 +722,7 @@ function Dashboard() {
                                 backgroundColor: "#fef2f2",
                                 color: "#dc2626",
                                 border: "1.5px solid #fca5a5",
-                                borderRadius: "9999px",
+                                borderRadius: "3px",
                                 padding: "2px 8px",
                                 fontSize: "12px",
                                 fontWeight: 700,
@@ -736,7 +736,7 @@ function Dashboard() {
                                 backgroundColor: "#fef3c7",
                                 color: "#b45309",
                                 border: "1px solid #fcd34d",
-                                borderRadius: "9999px",
+                                borderRadius: "3px",
                                 padding: "2px 8px",
                                 fontSize: "12px",
                                 fontWeight: 600,
@@ -954,7 +954,7 @@ function Dashboard() {
                   maxHeight: "300px",
                   overflowY: "auto",
                   border: "1px solid var(--border)",
-                  borderRadius: "10px",
+                  borderRadius: "3px",
                 }}
               >
                 <Table

@@ -424,7 +424,7 @@ function UsersPage() {
                   style={{
                     height: "46px",
                     fontSize: "14px",
-                    borderRadius: "10px",
+                    borderRadius: "3px",
                   }}
                 />
               </div>
@@ -439,7 +439,7 @@ function UsersPage() {
               background: "var(--surface)",
               height: "46px",
               padding: "0 18px",
-              borderRadius: "10px",
+              borderRadius: "3px",
               border: "1.5px solid var(--border)",
               boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
             }}
@@ -735,7 +735,7 @@ function UsersPage() {
               style={{
                 background: "#fff1f2",
                 border: "1px solid #fecdd3",
-                borderRadius: "8px",
+                borderRadius: "3px",
                 padding: "12px 14px",
                 color: "#9f1239",
                 fontSize: "13px",

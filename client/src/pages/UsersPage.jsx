@@ -130,8 +130,7 @@ function CreateUserModal({ onClose, onCreated }) {
               }}
             >
               <span>
-                Mã định danh (MSSV hoặc Mã NV){" "}
-                <span className="field-req">*</span>
+                Mã định danh <span className="field-req">*</span>
               </span>
               <button
                 type="button"
@@ -178,13 +177,7 @@ function CreateUserModal({ onClose, onCreated }) {
                 marginTop: "4px",
                 display: "block",
               }}
-            >
-              {role === "STUDENT"
-                ? "Tự động sinh mã tăng dần (dãy số MSSV giống đăng ký)"
-                : role === "STAFF"
-                  ? "Tự động sinh mã bắt đầu bằng NV (ví dụ NV001, NV002...)"
-                  : "Tự động sinh mã bắt đầu bằng AD (ví dụ AD001, AD002...)"}
-            </span>
+            ></span>
           </div>
 
           <div className="field">
@@ -536,27 +529,6 @@ function UsersPage() {
               />
               Admin
             </label>
-            {roles.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setRoles([]);
-                  setPage(1);
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#dc2626",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  padding: "0 4px",
-                  marginLeft: "4px",
-                }}
-              >
-                ✕ Đặt lại
-              </button>
-            )}
           </div>
         </div>
 
@@ -844,7 +816,6 @@ function UsersPage() {
 function StaffPage() {
   return <UsersPage />;
 }
-
 
 export { CreateUserModal, StaffPage };
 export default UsersPage;

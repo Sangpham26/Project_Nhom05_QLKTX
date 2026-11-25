@@ -14,12 +14,28 @@
   color: var(--lp-ink);
   font-family: "DM Sans", Inter, system-ui, sans-serif;
 }
-.ktx-landing *, .ktx-landing *::before, .ktx-landing *::after { box-sizing: border-box; }
-.ktx-landing img { display: block; max-width: 100%; }
-.ktx-landing a { color: inherit; }
-.ktx-landing button { font: inherit; }
-.ktx-landing :is(section, footer)[id] { scroll-margin-top: 96px; }
-.lp-container { width: min(1240px, calc(100% - 64px)); margin-inline: auto; }
+.ktx-landing *,
+.ktx-landing *::before,
+.ktx-landing *::after {
+  box-sizing: border-box;
+}
+.ktx-landing img {
+  display: block;
+  max-width: 100%;
+}
+.ktx-landing a {
+  color: inherit;
+}
+.ktx-landing button {
+  font: inherit;
+}
+.ktx-landing :is(section, footer)[id] {
+  scroll-margin-top: 96px;
+}
+.lp-container {
+  width: min(1240px, calc(100% - 64px));
+  margin-inline: auto;
+}
 .lp-header {
   position: fixed;
   z-index: 80;
@@ -37,18 +53,90 @@
   flex-shrink: 0;
   margin-inline: 0 !important;
 }
-.lp-brand { display: inline-flex; align-items: center; gap: 11px; flex: 0 0 auto; }
-.lp-brand-symbol { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; background: transparent; }
-.lp-brand-logo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; transition: opacity .22s ease; }
-.lp-brand-logo.is-hidden { opacity: 0; pointer-events: none; }
-.lp-brand > span:last-child { display: grid; gap: 1px; }
-.lp-brand strong { color: var(--lp-navy); font-size: 17px; line-height: 1.1; letter-spacing: -.04em; transition: color .22s ease; }
-.lp-brand small { color: var(--lp-muted); font-size: var(--font-2xs); font-weight: 800; letter-spacing: .13em; transition: color .22s ease; }
-.lp-nav-desktop { display: flex; justify-content: center; flex: 1; gap: clamp(16px, 2.3vw, 35px); }
-.lp-nav-desktop a { color: var(--lp-ink); font-size: var(--font-control); font-weight: 700; transition: color .22s ease; }
-.lp-nav-desktop a:hover { color: var(--lp-ink); text-decoration: underline; text-underline-offset: 5px; }
-.lp-nav-account { display: inline-flex; align-items: center; gap: 9px; padding: 12px 16px; border-radius: 11px; background: var(--lp-navy); color: #fff !important; font-size: var(--font-control); font-weight: 800; flex-shrink: 0; transition: background .22s ease, color .22s ease, transform .2s ease, box-shadow .22s ease; }
-.lp-nav-account:hover { background: var(--lp-blue-dark); transform: translateY(-1px); }
+.lp-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  flex: 0 0 auto;
+}
+.lp-brand-symbol {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: transparent;
+}
+.lp-brand-logo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: opacity 0.22s ease;
+}
+.lp-brand-logo.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.lp-brand > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+.lp-brand strong {
+  color: var(--lp-navy);
+  font-size: 17px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  transition: color 0.22s ease;
+}
+.lp-brand small {
+  color: var(--lp-muted);
+  font-size: var(--font-2xs);
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  transition: color 0.22s ease;
+}
+.lp-nav-desktop {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  gap: clamp(16px, 2.3vw, 35px);
+}
+.lp-nav-desktop a {
+  color: var(--lp-ink);
+  font-size: var(--font-control);
+  font-weight: 700;
+  transition: color 0.22s ease;
+}
+.lp-nav-desktop a:hover {
+  color: var(--lp-ink);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.lp-nav-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 16px;
+  border-radius: 11px;
+  background: var(--lp-navy);
+  color: #fff !important;
+  font-size: var(--font-control);
+  font-weight: 800;
+  flex-shrink: 0;
+  transition:
+    background 0.22s ease,
+    color 0.22s ease,
+    transform 0.2s ease,
+    box-shadow 0.22s ease;
+}
+.lp-nav-account:hover {
+  background: var(--lp-blue-dark);
+  transform: translateY(-1px);
+}
 .lp-menu-toggle {
   display: none;
   place-items: center;
@@ -59,18 +147,24 @@
   border-radius: 12px;
   background: rgba(244, 240, 232, 0.65);
   color: var(--lp-navy);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85), 0 4px 12px rgba(15, 48, 95, 0.08);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.85),
+    0 4px 12px rgba(15, 48, 95, 0.08);
   backdrop-filter: blur(16px) saturate(1.3);
   -webkit-backdrop-filter: blur(16px) saturate(1.3);
   cursor: pointer;
   pointer-events: auto !important;
-  transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, transform 0.18s ease;
+  transition:
+    background 0.22s ease,
+    color 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.18s ease;
 }
 .lp-menu-toggle:hover {
   background: rgba(255, 255, 255, 0.8);
   transform: translateY(-1px);
 }
- 
+
 /* --- Tự động thích ứng khi gặp nền tối (Light text / Light logo on dark background) --- */
 .lp-header.is-dark .lp-brand strong {
   color: #ffffff;
@@ -97,7 +191,9 @@
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.15);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .lp-header.is-dark .lp-menu-toggle:hover {
   background: rgba(255, 255, 255, 0.28);
@@ -110,7 +206,9 @@
 .lp-header.is-dark .lp-mobile-menu {
   background: rgba(33, 39, 35, 0.88) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), 0 20px 48px rgba(0, 0, 0, 0.45) !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.2),
+    0 20px 48px rgba(0, 0, 0, 0.45) !important;
 }
 .lp-header.is-dark .lp-mobile-menu a {
   color: #ffffff;
@@ -123,67 +221,83 @@
   background: #ffffff !important;
   color: var(--lp-navy) !important;
 }
-.lp-mobile-menu { display: none; }
+.lp-mobile-menu {
+  display: none;
+}
 @media (max-width: 1090px) {
-.lp-nav-desktop { gap: 17px; }
-.lp-nav-desktop a { font-size: var(--font-label); }
+  .lp-nav-desktop {
+    gap: 17px;
+  }
+  .lp-nav-desktop a {
+    font-size: var(--font-label);
+  }
 }
 @media (max-width: 959px) {
-.lp-container { width: min(100% - 42px, 760px); }
-.lp-nav-desktop, .lp-nav-account { display: none; }
-.lp-menu-toggle { display: grid; }
-.lp-mobile-menu {
-  position: absolute;
-  top: 86px;
-  right: 0;
-  left: 0;
-  width: calc(100% - 24px) !important;
-  margin-inline: auto;
-  display: grid;
-  gap: 3px;
-  padding: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.65) !important;
-  border-radius: 20px !important;
-  background: rgba(244, 240, 232, 0.55) !important;
-  backdrop-filter: blur(18px) saturate(1.35) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(1.35) !important;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85),
-              0 20px 48px rgba(15, 48, 95, 0.18) !important;
-  pointer-events: auto !important;
-  z-index: 95;
-  animation: lpMobileMenuSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.lp-mobile-menu * {
-  pointer-events: auto !important;
-}
-.lp-mobile-menu a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 46px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  color: var(--lp-navy);
-  font-size: var(--font-body);
-  font-weight: 700;
-  transition: background 0.15s ease, transform 0.15s ease;
-  cursor: pointer;
-}
-.lp-mobile-menu a:hover,
-.lp-mobile-menu a:active {
-  background: rgba(255, 255, 255, 0.45);
-}
-.lp-mobile-menu .lp-mobile-account {
-  margin-top: 6px;
-  background: var(--lp-navy) !important;
-  color: #fff !important;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(41, 45, 39, 0.22);
-}
-.lp-mobile-menu .lp-mobile-account:hover,
-.lp-mobile-menu .lp-mobile-account:active {
-  background: var(--lp-blue-dark) !important;
-}
+  .lp-container {
+    width: min(100% - 42px, 760px);
+  }
+  .lp-nav-desktop,
+  .lp-nav-account {
+    display: none;
+  }
+  .lp-menu-toggle {
+    display: grid;
+  }
+  .lp-mobile-menu {
+    position: absolute;
+    top: 86px;
+    right: 0;
+    left: 0;
+    width: calc(100% - 24px) !important;
+    margin-inline: auto;
+    display: grid;
+    gap: 3px;
+    padding: 13px;
+    border: 1px solid rgba(255, 255, 255, 0.65) !important;
+    border-radius: 20px !important;
+    background: rgba(244, 240, 232, 0.55) !important;
+    backdrop-filter: blur(18px) saturate(1.35) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.35) !important;
+    box-shadow:
+      inset 1px 1px 0 rgba(255, 255, 255, 0.85),
+      0 20px 48px rgba(15, 48, 95, 0.18) !important;
+    pointer-events: auto !important;
+    z-index: 95;
+    animation: lpMobileMenuSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lp-mobile-menu * {
+    pointer-events: auto !important;
+  }
+  .lp-mobile-menu a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 46px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: var(--lp-navy);
+    font-size: var(--font-body);
+    font-weight: 700;
+    transition:
+      background 0.15s ease,
+      transform 0.15s ease;
+    cursor: pointer;
+  }
+  .lp-mobile-menu a:hover,
+  .lp-mobile-menu a:active {
+    background: rgba(255, 255, 255, 0.45);
+  }
+  .lp-mobile-menu .lp-mobile-account {
+    margin-top: 6px;
+    background: var(--lp-navy) !important;
+    color: #fff !important;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(41, 45, 39, 0.22);
+  }
+  .lp-mobile-menu .lp-mobile-account:hover,
+  .lp-mobile-menu .lp-mobile-account:active {
+    background: var(--lp-blue-dark) !important;
+  }
 }
 @keyframes lpMobileMenuSlide {
   from {
@@ -196,20 +310,39 @@
   }
 }
 @media (max-width: 700px) {
-.lp-container { width: min(100% - 36px, 540px); }
+  .lp-container {
+    width: min(100% - 36px, 540px);
+  }
 }
 @media (max-width: 390px) {
-.lp-container { width: calc(100% - 30px); }
+  .lp-container {
+    width: calc(100% - 30px);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-.ktx-landing *, .ktx-landing *::before, .ktx-landing *::after { animation: none !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .ktx-landing *,
+  .ktx-landing *::before,
+  .ktx-landing *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 .ktx-landing {
   --lp-glass: rgba(244, 240, 232, 0.55);
-  --lp-glass-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85), inset -1px -1px 0 rgba(213, 210, 198, 0.15), 0 20px 48px rgba(15, 48, 95, 0.16);
+  --lp-glass-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.85),
+    inset -1px -1px 0 rgba(213, 210, 198, 0.15),
+    0 20px 48px rgba(15, 48, 95, 0.16);
 }
-.lp-header, .lp-header.is-scrolled { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; }
- 
+.lp-header,
+.lp-header.is-scrolled {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
 /* ------------------------------------------------------------------
    NAV: lớp kính chuyển sang ::before.
    Nếu .lp-nav tự có backdrop-filter thì nó thành "backdrop root" và
@@ -226,12 +359,13 @@
   flex-shrink: 0;
   margin-inline: 0 !important;
   contain: layout;
-  transition: width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-              max-width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-              margin-top 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-              padding 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-              border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    max-width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    margin-top 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .lp-nav::before {
   content: "";
@@ -242,7 +376,8 @@
   pointer-events: none;
   background: rgba(255, 255, 255, 0);
   backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15)
+    contrast(1.05);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.15),
     inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
@@ -250,9 +385,12 @@
     0 8px 32px rgba(0, 0, 0, 0.2);
   transition: border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
- 
-.lp-nav > * { position: relative; z-index: 1; }
- 
+
+.lp-nav > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Trạng thái 1: Khi ở đầu trang - Tràn full bề ngang, khít 100% với banner (height: 78px) */
 .lp-header:not(.is-scrolled) .lp-nav {
   width: 100% !important;
@@ -264,44 +402,77 @@
   padding: 0 clamp(24px, 4.5vw, 64px);
   transform: none;
 }
- 
+
 /* Trạng thái 2: Khi kéo xuống - Thu lại dạng đảo nổi bo góc như hiện tại */
 .lp-header.is-scrolled .lp-nav {
-  width: min(var(--dl-content-width, 1320px), calc(100% - var(--dl-gutter, 32px) * 2)) !important;
+  width: min(
+    var(--dl-content-width, 1320px),
+    calc(100% - var(--dl-gutter, 32px) * 2)
+  ) !important;
   max-width: 1320px !important;
   height: 62px;
   margin-top: 8px !important;
   margin-inline: 0 !important;
-  border-radius: 19px !important;
+  border-radius: 13px !important;
   padding: 0 20px;
   transform: none;
 }
- 
-.lp-menu-toggle, .lp-mobile-menu {
+
+.lp-menu-toggle,
+.lp-mobile-menu {
   background: var(--lp-glass);
   box-shadow: var(--lp-glass-shadow);
   backdrop-filter: blur(20px) saturate(1.3);
   -webkit-backdrop-filter: blur(20px) saturate(1.3);
 }
-.ktx-landing :is(a, button):focus-visible { outline: 3px solid #963b24; outline-offset: 3px; }
+.ktx-landing :is(a, button):focus-visible {
+  outline: 3px solid #963b24;
+  outline-offset: 3px;
+}
 @media (max-width: 959px) {
-  .lp-header:not(.is-scrolled) .lp-nav { height: 78px !important; padding: 0 16px; }
-  .lp-header.is-scrolled .lp-nav { height: 61px; padding: 0 14px; margin-top: 8px !important; border-radius: 16px !important; width: calc(100% - 24px) !important; }
-  .lp-header:not(.is-scrolled) .lp-mobile-menu { top: 86px; }
-  .lp-header.is-scrolled .lp-mobile-menu { top: 76px; }
+  .lp-header:not(.is-scrolled) .lp-nav {
+    height: 78px !important;
+    padding: 0 16px;
+  }
+  .lp-header.is-scrolled .lp-nav {
+    height: 61px;
+    padding: 0 14px;
+    margin-top: 8px !important;
+    border-radius: 16px !important;
+    width: calc(100% - 24px) !important;
+  }
+  .lp-header:not(.is-scrolled) .lp-mobile-menu {
+    top: 86px;
+  }
+  .lp-header.is-scrolled .lp-mobile-menu {
+    top: 76px;
+  }
 }
 @media (max-width: 700px) {
-  .lp-header:not(.is-scrolled) .lp-nav { padding: 0 14px; }
-  .lp-header.is-scrolled .lp-nav { padding: 0 12px; }
+  .lp-header:not(.is-scrolled) .lp-nav {
+    padding: 0 14px;
+  }
+  .lp-header.is-scrolled .lp-nav {
+    padding: 0 12px;
+  }
 }
 @media (max-width: 480px) {
-  .lp-mobile-menu { width: calc(100% - 20px) !important; }
+  .lp-mobile-menu {
+    width: calc(100% - 20px) !important;
+  }
 }
- 
+
 /* Signed-in visitors use the same avatar and glass account menu as management. */
-.lp-account-wrap { display: flex; align-items: center; flex: 0 0 auto; }
-.lp-account-wrap .top-avatar { font-size: var(--font-label); font-weight: 700; }
- 
+.lp-account-wrap {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.lp-account-wrap .top-avatar {
+  font-size: var(--font-label);
+  font-weight: 700;
+}
+
 /* Dropdown tài khoản: kính giống thanh header.
    Không ghi đè position/right/left để giữ nguyên cách mở của CSS gốc. */
 .lp-account-wrap .account-popover {
@@ -314,10 +485,15 @@
     inset 0 0 12px rgba(255, 255, 255, 0.2),
     0 8px 32px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15)
+    contrast(1.05);
 }
-.lp-account-wrap .account-popover::after { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
- 
+.lp-account-wrap .account-popover::after {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* Khi header đang ở nền tối: chữ sáng + nền hơi tối để dễ đọc */
 .lp-header.is-dark .lp-account-wrap .account-popover {
   background: rgba(20, 24, 22, 0.35);
@@ -326,19 +502,33 @@
 .lp-header.is-dark .lp-account-wrap .account-popover * {
   color: #ffffff;
 }
- 
+
 @media (max-width: 959px) {
-  .lp-nav.has-session { gap: 12px; }
-  .lp-nav.has-session .lp-brand { flex: 1; min-width: 0; }
-  .lp-nav.has-session .lp-brand-symbol { flex: 0 0 39px; }
-  .lp-nav.has-session .lp-brand > span:last-child { min-width: 0; }
-  .lp-nav.has-session .lp-brand small { letter-spacing: .06em; }
-  .lp-nav.has-session .lp-menu-toggle { flex: 0 0 44px; margin-left: 0; }
+  .lp-nav.has-session {
+    gap: 12px;
+  }
+  .lp-nav.has-session .lp-brand {
+    flex: 1;
+    min-width: 0;
+  }
+  .lp-nav.has-session .lp-brand-symbol {
+    flex: 0 0 39px;
+  }
+  .lp-nav.has-session .lp-brand > span:last-child {
+    min-width: 0;
+  }
+  .lp-nav.has-session .lp-brand small {
+    letter-spacing: 0.06em;
+  }
+  .lp-nav.has-session .lp-menu-toggle {
+    flex: 0 0 44px;
+    margin-left: 0;
+  }
 }
- /* ===== Chuyển màu sáng/tối mượt hơn ===== */
+/* ===== Chuyển màu sáng/tối mượt hơn ===== */
 .ktx-landing {
-  --lp-theme-speed: .6s;                          /* chỉnh ở đây: .4s nhanh, .8s chậm */
-  --lp-theme-ease: cubic-bezier(.4, 0, .2, 1);
+  --lp-theme-speed: 0.6s; /* chỉnh ở đây: .4s nhanh, .8s chậm */
+  --lp-theme-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Logo + chữ thương hiệu */
@@ -361,7 +551,7 @@
     background-color var(--lp-theme-speed) var(--lp-theme-ease),
     color var(--lp-theme-speed) var(--lp-theme-ease),
     box-shadow var(--lp-theme-speed) var(--lp-theme-ease),
-    transform .2s ease;
+    transform 0.2s ease;
 }
 
 /* Nút hamburger */
@@ -371,7 +561,7 @@
     color var(--lp-theme-speed) var(--lp-theme-ease),
     border-color var(--lp-theme-speed) var(--lp-theme-ease),
     box-shadow var(--lp-theme-speed) var(--lp-theme-ease),
-    transform .18s ease;
+    transform 0.18s ease;
 }
 
 /* Avatar */
@@ -399,10 +589,12 @@
 }
 .lp-mobile-menu a {
   transition:
-    background-color .15s ease,
+    background-color 0.15s ease,
     color var(--lp-theme-speed) var(--lp-theme-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ktx-landing { --lp-theme-speed: .01ms; }
+  .ktx-landing {
+    --lp-theme-speed: 0.01ms;
+  }
 }

@@ -76,7 +76,7 @@ export function AuthProvider({ children }) {
           <div
             style={{
               background: "#fff",
-              borderRadius: "16px",
+              borderRadius: "0",
               maxWidth: "420px",
               width: "100%",
               padding: "28px 24px",

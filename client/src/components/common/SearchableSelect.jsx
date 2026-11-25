@@ -270,7 +270,7 @@ export default function SearchableSelect({
             zIndex: 9999,
             background: "#ffffff",
             border: "1px solid #dfe8ea",
-            borderRadius: "8px",
+            borderRadius: "3px",
             boxShadow: "0 10px 25px rgba(27, 46, 56, 0.15)",
             maxHeight: "250px",
             overflowY: "auto",

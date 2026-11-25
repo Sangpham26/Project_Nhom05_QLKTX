@@ -141,7 +141,7 @@ export default function PeriodSelect({
             width: "max(100%, 220px)",
             background: "#ffffff",
             border: "1px solid #d5d2c6",
-            borderRadius: "12px",
+            borderRadius: "3px",
             boxShadow: "0 12px 30px rgba(41, 45, 39, 0.16)",
             padding: "7px",
           }}
